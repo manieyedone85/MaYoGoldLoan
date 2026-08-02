@@ -1,0 +1,1535 @@
+{
+  "info": {
+    "name": "Gold Loan API",
+    "description": "Postman collection for Gold Loan API v1 endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:81/MaYo/GoldLon/my-gold-loan-api/public/api/v1",
+      "type": "string",
+      "description": "Use this for local testing. For production, replace it with your live URL such as https://yourdomain.com/api/v1"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Public Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"<username>\",\n  \"password\": \"<password>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login"
+            }
+          }
+        },
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobile_number\": \"<mobile_number>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/otp/send"
+            }
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobile_number\": \"<mobile_number>\",\n  \"otp\": \"<otp_value>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/otp/verify"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authenticated",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{auth_token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Auth",
+          "item": [
+            {
+              "name": "Refresh Token",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/refresh-token"
+                }
+              }
+            },
+            {
+              "name": "Logout",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/logout"
+                }
+              }
+            },
+            {
+              "name": "Bind Device",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"device_id\": \"<device_id>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/device/bind"
+                }
+              }
+            },
+            {
+              "name": "Set MPIN",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"mpin\": \"<4_digit_mpin>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/mpin/set"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Customer",
+          "item": [
+            {
+              "name": "Create Customer",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"<name>\",\n  \"mobile_number\": \"<mobile>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/customer"
+                }
+              }
+            },
+            {
+              "name": "Search Customer",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/customer/search"
+                }
+              }
+            },
+            {
+              "name": "Duplicate Check",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"mobile_number\": \"<mobile_number>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/customer/duplicate-check"
+                }
+              }
+            },
+            {
+              "name": "Get Customer",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/customer/:customer"
+                }
+              }
+            },
+            {
+              "name": "Add Nominee",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"<nominee_name>\",\n  \"relationship\": \"<relationship>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/customer/:customer/nominee"
+                }
+              }
+            },
+            {
+              "name": "Add Family Member",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"<member_name>\",\n  \"relationship\": \"<relationship>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/customer/:customer/family-member"
+                }
+              }
+            },
+            {
+              "name": "Merge Customer",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"target_customer_id\": \"<target_customer_id>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/customer/:customer/merge"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "KYC",
+          "item": [
+            {
+              "name": "Aadhaar QR Scan",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"qr_data\": \"<qr_payload>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/kyc/aadhaar/qr-scan"
+                }
+              }
+            },
+            {
+              "name": "Aadhaar Offline XML",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"xml\": \"<base64_encoded_aadhaar_xml>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/kyc/aadhaar/offline-xml"
+                }
+              }
+            },
+            {
+              "name": "Aadhaar Face Auth",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"customer_id\": \"<customer_id>\",\n  \"image_base64\": \"<face_image_base64>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/kyc/aadhaar/face-auth"
+                }
+              }
+            },
+            {
+              "name": "Get Masked Aadhaar",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/kyc/aadhaar/:customerId/masked"
+                }
+              }
+            },
+            {
+              "name": "Validate PAN",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"pan_number\": \"<pan_number>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/kyc/pan/validate"
+                }
+              }
+            },
+            {
+              "name": "Upload KYC Document",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"customer_id\": \"<customer_id>\",\n  \"document_type_id\": \"<document_type_id>\",\n  \"document_url\": \"<document_url>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/kyc/document"
+                }
+              }
+            },
+            {
+              "name": "List KYC Documents",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/kyc/document/:customerId"
+                }
+              }
+            },
+            {
+              "name": "Verify KYC Document",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"verified\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/kyc/document/:kycDocument/verify"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Jewellery",
+          "item": [
+            {
+              "name": "Evaluate Jewellery",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"customer_id\": \"<customer_id>\",\n  \"gross_weight\": <gross_weight>,\n  \"stone_weight\": <stone_weight>\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/jewellery/evaluate"
+                }
+              }
+            },
+            {
+              "name": "Get Current Gold Rate",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/jewellery/rate/current"
+                }
+              }
+            },
+            {
+              "name": "Propose Gold Rate",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rate\": <proposed_rate>,\n  \"reason\": \"<reason>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/jewellery/rate/propose"
+                }
+              }
+            },
+            {
+              "name": "Approve Gold Rate",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/jewellery/rate/:goldRate/approve"
+                }
+              }
+            },
+            {
+              "name": "Upload Jewellery Image",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"image_url\": \"<image_url>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/jewellery/:jewelleryItem/image"
+                }
+              }
+            },
+            {
+              "name": "Get Jewellery Barcode",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/jewellery/:jewelleryItem/barcode"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Loan",
+          "item": [
+            {
+              "name": "Calculate Loan",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"customer_id\": \"<customer_id>\",\n  \"amount\": <loan_amount>,\n  \"tenure_months\": <tenure_months>\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/loan/calculate"
+                }
+              }
+            },
+            {
+              "name": "Create Loan",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"customer_id\": \"<customer_id>\",\n  \"product_id\": \"<loan_product_id>\",\n  \"principal\": <amount>,\n  \"tenure\": <months>\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/loan"
+                }
+              }
+            },
+            {
+              "name": "Pending Approval Loans",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/loan/pending-approval"
+                }
+              }
+            },
+            {
+              "name": "Loan EMI Schedule",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/loan/:loan/emi-schedule"
+                }
+              }
+            },
+            {
+              "name": "Submit Loan for Approval",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/loan/:loan/submit-for-approval"
+                }
+              }
+            },
+            {
+              "name": "Approve Loan",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/loan/:loan/approve"
+                }
+              }
+            },
+            {
+              "name": "Reject Loan",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"<reject_reason>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/loan/:loan/reject"
+                }
+              }
+            },
+            {
+              "name": "Override Loan",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"override_reason\": \"<reason>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/loan/:loan/override"
+                }
+              }
+            },
+            {
+              "name": "Disburse Loan",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"disbursement_mode\": \"CASH\",\n  \"amount\": <amount>\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/loan/:loan/disburse"
+                }
+              }
+            },
+            {
+              "name": "Renewal Eligibility",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/loan/:loan/renewal-eligibility"
+                }
+              }
+            },
+            {
+              "name": "Renew Loan",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"additional_amount\": <amount>\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/loan/:loan/renew"
+                }
+              }
+            },
+            {
+              "name": "Top-up Eligibility",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/loan/:loan/topup/eligibility"
+                }
+              }
+            },
+            {
+              "name": "Approve Top-up",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/loan/:loan/topup/approve"
+                }
+              }
+            },
+            {
+              "name": "Disburse Top-up",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": <amount>\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/loan/:loan/topup/disburse"
+                }
+              }
+            },
+            {
+              "name": "Interest Due",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/loan/:loan/interest/due"
+                }
+              }
+            },
+            {
+              "name": "Collect Interest",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": <amount>\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/loan/:loan/interest/collect"
+                }
+              }
+            },
+            {
+              "name": "Part Payment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": <amount>\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/loan/:loan/part-payment"
+                }
+              }
+            },
+            {
+              "name": "Reload Loan",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reload_amount\": <amount>\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/loan/:loan/reload"
+                }
+              }
+            },
+            {
+              "name": "Closure Statement",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/loan/:loan/closure-statement"
+                }
+              }
+            },
+            {
+              "name": "Settle Loan",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/loan/:loan/settle"
+                }
+              }
+            },
+            {
+              "name": "Verify Gold Release ID",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"verification_id\": \"<verification_id>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/loan/gold-release/verify-id"
+                }
+              }
+            },
+            {
+              "name": "Capture Gold Release Signature",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"signature_data\": \"<base64_signature>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/loan/goldrelease/:goldRelease/capture-signature"
+                }
+              }
+            },
+            {
+              "name": "Complete Gold Release",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/loan/goldrelease/:goldRelease/complete"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auction",
+          "item": [
+            {
+              "name": "Schedule Auction",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"schedule_date\": \"<date>\",\n  \"branch_id\": \"<branch_id>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auction/schedule"
+                }
+              }
+            },
+            {
+              "name": "Create Auction Notice",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"notice_text\": \"<notice_text>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auction/:auctionSchedule/notice"
+                }
+              }
+            },
+            {
+              "name": "Add Auction Bidder",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"bidder_id\": \"<bidder_id>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auction/:auctionSchedule/bidder"
+                }
+              }
+            },
+            {
+              "name": "Place Auction Bid",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"bid_amount\": <amount>\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auction/:auctionSchedule/bid"
+                }
+              }
+            },
+            {
+              "name": "Declare Auction Winner",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"winner_id\": \"<winner_id>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auction/:auctionSchedule/winner"
+                }
+              }
+            },
+            {
+              "name": "Settle Auction",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auction/:auctionSchedule/settle"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Notifications",
+          "item": [
+            {
+              "name": "Send Notification",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"recipient\": \"<recipient>\",\n  \"message\": \"<message>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/notify/:channel"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dashboard",
+          "item": [
+            {
+              "name": "Summary",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/dashboard/summary"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reports",
+          "item": [
+            {
+              "name": "Generate Report",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/reports/:reportCode"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Accounting",
+          "item": [
+            {
+              "name": "Create Voucher",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"voucher_date\": \"<date>\",\n  \"entries\": [\n    {\n      \"account_id\": \"<id>\",\n      \"debit\": <amount>,\n      \"credit\": 0\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/accounting/voucher"
+                }
+              }
+            },
+            {
+              "name": "Customer Ledger",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/accounting/ledger/:customerId"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Inventory",
+          "item": [
+            {
+              "name": "Create Packet",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"packet_code\": \"<code>\",\n  \"weight\": <weight>\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/inventory/packet"
+                }
+              }
+            },
+            {
+              "name": "Transfer Packet",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"target_branch_id\": \"<branch_id>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/inventory/packet/:goldPacket/transfer"
+                }
+              }
+            },
+            {
+              "name": "Vault Status",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/inventory/vault/:branchId/status"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sync",
+          "item": [
+            {
+              "name": "Upload Sync Queue",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"items\": [\n    {\n      \"type\": \"<type>\",\n      \"payload\": {}\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/sync/upload-queue"
+                }
+              }
+            },
+            {
+              "name": "Download Delta",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/sync/download-delta"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Master",
+          "item": [
+            {
+              "name": "List Branches",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/master/branch"
+                }
+              }
+            },
+            {
+              "name": "Create Branch",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"<branch_name>\",\n  \"location\": \"<location>\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/master/branch"
+                }
+              }
+            },
+            {
+              "name": "List Loan Products",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/master/loan-product"
+                }
+              }
+            },
+            {
+              "name": "Create Loan Product",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"<product_name>\",\n  \"interest_rate\": <rate>\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/master/loan-product"
+                }
+              }
+            },
+            {
+              "name": "List Roles",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/master/role"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
