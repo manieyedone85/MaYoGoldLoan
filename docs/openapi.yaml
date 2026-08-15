@@ -1,0 +1,1344 @@
+openapi: 3.0.3
+info:
+  title: SWARNA Gold Loan API (CodeIgniter 3 port)
+  version: 1.0.0
+  description: >-
+    OpenAPI 3.0 document for the CodeIgniter 3 port of the SWARNA gold loan backend
+    API. Paths, request bodies, and response shapes are ported 1:1 from the original
+    Laravel API (see ../../docs/openapi.yaml in the parent project) — this port's
+    controllers were written to match those shapes exactly, but responses here have
+    not been captured from a live run; treat this file as the intended contract, and
+    diff actual responses against it while verifying the port (see README.md).
+servers:
+  - url: http://localhost:8080
+    description: Local development server (CodeIgniter 3 port)
+  - url: https://yourdomain.com
+    description: Production host
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with username/password or MPIN
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mobile]
+              properties:
+                mobile:
+                  type: string
+                password:
+                  type: string
+                mpin:
+                  type: string
+                device_id:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthLoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/otp/send:
+    post:
+      tags: [Auth]
+      summary: Send OTP
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mobile]
+              properties:
+                mobile:
+                  type: string
+                purpose:
+                  type: string
+      responses:
+        '200':
+          description: OTP sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+  /api/v1/auth/otp/verify:
+    post:
+      tags: [Auth]
+      summary: Verify OTP
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mobile, otp, purpose]
+              properties:
+                mobile:
+                  type: string
+                otp:
+                  type: string
+                purpose:
+                  type: string
+                device_id:
+                  type: string
+      responses:
+        '200':
+          description: OTP verified or login token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthOtpVerifyResponse'
+  /api/v1/auth/refresh-token:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout current session
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+  /api/v1/customer:
+    post:
+      tags: [Customer]
+      summary: Create a customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerCreateRequest'
+      responses:
+        '201':
+          description: Customer created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerCreateResponse'
+  /api/v1/customer/search:
+    get:
+      tags: [Customer]
+      summary: Search customers
+      parameters:
+        - in: query
+          name: mobile
+          schema: { type: string }
+        - in: query
+          name: aadhaar_hash
+          schema: { type: string }
+      responses:
+        '200':
+          description: Customers found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerSearchResponse'
+  /api/v1/customer/duplicate-check:
+    post:
+      tags: [Customer]
+      summary: Check for duplicate customer records
+      responses:
+        '200':
+          description: Duplicate candidates returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerDuplicateCheckResponse'
+  /api/v1/customer/{customer}:
+    get:
+      tags: [Customer]
+      summary: Retrieve a customer by ID
+      parameters:
+        - in: path
+          name: customer
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Customer details returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerShowResponse'
+  /api/v1/customer/{customer}/nominee:
+    post:
+      tags: [Customer]
+      summary: Add a nominee to a customer
+      parameters:
+        - in: path
+          name: customer
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Nominee created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerNomineeCreateResponse'
+  /api/v1/customer/{customer}/family-member:
+    post:
+      tags: [Customer]
+      summary: Add a family member to a customer
+      parameters:
+        - in: path
+          name: customer
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Family member created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerFamilyMemberCreateResponse'
+  /api/v1/kyc/aadhaar/qr-scan:
+    post:
+      tags: [KYC]
+      summary: Scan Aadhaar QR data
+      responses:
+        '201':
+          description: Aadhaar verification created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AadhaarVerificationResponse'
+  /api/v1/kyc/aadhaar/offline-xml:
+    post:
+      tags: [KYC]
+      summary: Upload offline Aadhaar XML
+      responses:
+        '201':
+          description: Aadhaar verification created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AadhaarVerificationResponse'
+  /api/v1/kyc/aadhaar/face-auth:
+    post:
+      tags: [KYC]
+      summary: Perform Aadhaar face authentication
+      responses:
+        '200':
+          description: Face-auth result returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FaceAuthResponse'
+  /api/v1/kyc/aadhaar/{customerId}/masked:
+    get:
+      tags: [KYC]
+      summary: Retrieve masked Aadhaar data
+      parameters:
+        - in: path
+          name: customerId
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Masked Aadhaar data returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaskedAadhaarResponse'
+  /api/v1/kyc/pan/validate:
+    post:
+      tags: [KYC]
+      summary: Validate PAN details
+      responses:
+        '201':
+          description: PAN validation result created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PanVerificationResponse'
+  /api/v1/kyc/document:
+    post:
+      tags: [KYC]
+      summary: Upload a KYC document
+      responses:
+        '201':
+          description: Document uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KycDocumentCreateResponse'
+    get:
+      tags: [KYC]
+      summary: List KYC documents for a customer
+      parameters:
+        - in: query
+          name: customerId
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Documents listed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KycDocumentListResponse'
+  /api/v1/kyc/document/{customerId}:
+    get:
+      tags: [KYC]
+      summary: Retrieve KYC documents by customer ID
+      parameters:
+        - in: path
+          name: customerId
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Document list returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KycDocumentListResponse'
+  /api/v1/kyc/document/{kycDocument}/verify:
+    put:
+      tags: [KYC]
+      summary: Verify a KYC document
+      parameters:
+        - in: path
+          name: kycDocument
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Verification status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KycDocumentResponse'
+  /api/v1/jewellery/evaluate:
+    post:
+      tags: [Jewellery]
+      summary: Evaluate jewellery item
+      responses:
+        '201':
+          description: Jewellery evaluated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JewelleryEvaluationResponse'
+  /api/v1/jewellery/rate/current:
+    get:
+      tags: [Jewellery]
+      summary: Get current gold rate
+      responses:
+        '200':
+          description: Current gold rate returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoldRateCurrentResponse'
+  /api/v1/jewellery/rate/propose:
+    post:
+      tags: [Jewellery]
+      summary: Propose a new gold rate
+      responses:
+        '201':
+          description: Gold rate proposal created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoldRateCreateResponse'
+  /api/v1/jewellery/rate/{goldRate}/approve:
+    post:
+      tags: [Jewellery]
+      summary: Approve a proposed gold rate
+      parameters:
+        - in: path
+          name: goldRate
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Gold rate approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoldRateCreateResponse'
+  /api/v1/jewellery/{jewelleryItem}/image:
+    post:
+      tags: [Jewellery]
+      summary: Upload jewellery image
+      parameters:
+        - in: path
+          name: jewelleryItem
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Image uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JewelleryImageCreateResponse'
+  /api/v1/jewellery/{jewelleryItem}/barcode:
+    get:
+      tags: [Jewellery]
+      summary: Retrieve jewellery barcode
+      parameters:
+        - in: path
+          name: jewelleryItem
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Barcode returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JewelleryBarcodeResponse'
+  /api/v1/loan/calculate:
+    post:
+      tags: [Loan]
+      summary: Calculate loan eligibility and EMI details
+      responses:
+        '200':
+          description: Loan calculation returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanCalculationResponse'
+  /api/v1/loan:
+    post:
+      tags: [Loan]
+      summary: Create a new loan
+      responses:
+        '201':
+          description: Loan created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanCreateResponse'
+  /api/v1/loan/pending-approval:
+    get:
+      tags: [Loan]
+      summary: Get pending loan approvals
+      responses:
+        '200':
+          description: Pending approvals returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanApprovalPendingResponse'
+  /api/v1/loan/{loan}/emi-schedule:
+    get:
+      tags: [Loan]
+      summary: Retrieve EMI schedule for a loan
+      parameters:
+        - in: path
+          name: loan
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: EMI schedule returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanEmiScheduleResponse'
+  /api/v1/loan/{loan}/submit-for-approval:
+    post:
+      tags: [Loan]
+      summary: Submit a loan for approval
+      parameters:
+        - in: path
+          name: loan
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Loan submitted for approval
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+  /api/v1/loan/{loan}/approve:
+    post:
+      tags: [Loan]
+      summary: Approve a loan
+      parameters:
+        - in: path
+          name: loan
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Loan approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+  /api/v1/loan/{loan}/reject:
+    post:
+      tags: [Loan]
+      summary: Reject a loan
+      parameters:
+        - in: path
+          name: loan
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Loan rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+  /api/v1/loan/{loan}/disburse:
+    post:
+      tags: [Loan]
+      summary: Disburse a loan
+      parameters:
+        - in: path
+          name: loan
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Loan disbursed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanDisbursementResponse'
+  /api/v1/loan/{loan}/part-payment:
+    post:
+      tags: [Loan]
+      summary: Apply part payment to a loan
+      parameters:
+        - in: path
+          name: loan
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Part payment applied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartPaymentResponse'
+  /api/v1/loan/{loan}/reload:
+    post:
+      tags: [Loan]
+      summary: Reload excess amount against a loan
+      parameters:
+        - in: path
+          name: loan
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Reload processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartPaymentResponse'
+  /api/v1/notify/{channel}:
+    post:
+      tags: [Notifications]
+      summary: Send a notification through a specific channel
+      parameters:
+        - in: path
+          name: channel
+          required: true
+          schema: { type: string }
+      responses:
+        '201':
+          description: Notification sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationLogResponse'
+  /api/v1/dashboard/summary:
+    get:
+      tags: [Dashboard]
+      summary: Get dashboard summary
+      responses:
+        '200':
+          description: Dashboard summary returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSummaryResponse'
+  /api/v1/reports/{reportCode}:
+    get:
+      tags: [Reports]
+      summary: Generate a report
+      parameters:
+        - in: path
+          name: reportCode
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Report returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+  /api/v1/accounting/voucher:
+    post:
+      tags: [Accounting]
+      summary: Create an accounting voucher
+      responses:
+        '201':
+          description: Voucher created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoucherResponse'
+  /api/v1/accounting/ledger/{customerId}:
+    get:
+      tags: [Accounting]
+      summary: Retrieve customer ledger
+      parameters:
+        - in: path
+          name: customerId
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Ledger returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerLedgerResponse'
+  /api/v1/inventory/packet:
+    post:
+      tags: [Inventory]
+      summary: Create an inventory packet
+      responses:
+        '201':
+          description: Packet created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryPacketResponse'
+  /api/v1/inventory/packet/{goldPacket}/transfer:
+    post:
+      tags: [Inventory]
+      summary: Transfer a gold packet
+      parameters:
+        - in: path
+          name: goldPacket
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Transfer completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryPacketResponse'
+  /api/v1/inventory/vault/{branchId}/status:
+    get:
+      tags: [Inventory]
+      summary: Get vault status for a branch
+      parameters:
+        - in: path
+          name: branchId
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Vault status returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VaultStatusResponse'
+  /api/v1/sync/upload-queue:
+    post:
+      tags: [Sync]
+      summary: Upload offline sync queue
+      responses:
+        '201':
+          description: Queue uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncQueueResponse'
+  /api/v1/sync/download-delta:
+    get:
+      tags: [Sync]
+      summary: Download sync delta
+      parameters:
+        - in: query
+          name: lastSyncTs
+          schema: { type: string }
+      responses:
+        '200':
+          description: Delta returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncDeltaResponse'
+  /api/v1/master/branch:
+    get:
+      tags: [Master]
+      summary: List branches
+      responses:
+        '200':
+          description: Branch list returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MasterBranchResponse'
+    post:
+      tags: [Master]
+      summary: Create a branch
+      responses:
+        '201':
+          description: Branch created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MasterBranchResponse'
+  /api/v1/master/loan-product:
+    get:
+      tags: [Master]
+      summary: List loan products
+      responses:
+        '200':
+          description: Loan product list returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MasterLoanProductResponse'
+    post:
+      tags: [Master]
+      summary: Create a loan product
+      responses:
+        '201':
+          description: Loan product created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MasterLoanProductResponse'
+  /api/v1/master/role:
+    get:
+      tags: [Master]
+      summary: List roles
+      responses:
+        '200':
+          description: Role list returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MasterRoleResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+    TokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+    AuthLoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserSummary'
+    AuthOtpVerifyResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        message:
+          type: string
+        reset_token:
+          type: string
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        role:
+          type: string
+        branch_id:
+          type: integer
+    CustomerCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        mobile:
+          type: string
+        email:
+          type: string
+        dob:
+          type: string
+          format: date
+        gender:
+          type: string
+        branch_id:
+          type: integer
+        address:
+          $ref: '#/components/schemas/CustomerAddressInput'
+    CustomerAddressInput:
+      type: object
+      properties:
+        address_line_1:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        pincode:
+          type: string
+    CustomerResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        customer_code:
+          type: string
+        name:
+          type: string
+        mobile:
+          type: string
+        email:
+          type: string
+        dob:
+          type: string
+          format: date
+        gender:
+          type: string
+        branch_id:
+          type: integer
+        kyc_status:
+          type: string
+        registered_by:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+    CustomerCreateResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/CustomerResponse'
+    CustomerShowResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/CustomerResponse'
+    CustomerSearchResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerResponse'
+    CustomerDuplicateCheckResponse:
+      type: object
+      properties:
+        possible_duplicates:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerResponse'
+    CustomerNominee:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        relation:
+          type: string
+        mobile:
+          type: string
+        id_proof_type:
+          type: string
+        id_proof_number:
+          type: string
+    CustomerNomineeCreateResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/CustomerNominee'
+    CustomerFamilyMember:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        relation:
+          type: string
+        mobile:
+          type: string
+    CustomerFamilyMemberCreateResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/CustomerFamilyMember'
+    AadhaarVerificationResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+            customer_id:
+              type: integer
+            verification_type:
+              type: string
+            status:
+              type: string
+    FaceAuthResponse:
+      type: object
+      properties:
+        is_matched:
+          type: boolean
+        confidence_score:
+          type: number
+    MaskedAadhaarResponse:
+      type: object
+      properties:
+        customer_id:
+          type: integer
+        aadhaar_last4:
+          type: string
+        aadhaar_hash:
+          type: string
+    PanVerificationResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+            customer_id:
+              type: integer
+            status:
+              type: string
+    KycDocumentRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        customer_id:
+          type: integer
+        document_type:
+          type: string
+        file_ref:
+          type: string
+        status:
+          type: string
+    KycDocumentResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/KycDocumentRecord'
+    KycDocumentCreateResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/KycDocumentRecord'
+    KycDocumentListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/KycDocumentRecord'
+    JewelleryItemResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        barcode:
+          type: string
+        customer_id:
+          type: integer
+        category_id:
+          type: integer
+        hallmark_flag:
+          type: boolean
+        gross_weight:
+          type: number
+        stone_weight:
+          type: number
+        net_weight:
+          type: number
+        purity_karat:
+          type: string
+        gold_rate_id:
+          type: integer
+        applied_rate:
+          type: number
+        eligible_percentage:
+          type: number
+        eligible_amount:
+          type: number
+        evaluated_by:
+          type: integer
+        status:
+          type: string
+    JewelleryEvaluationResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/JewelleryItemResponse'
+    GoldRateResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        karat:
+          type: string
+        rate_per_gram:
+          type: number
+        status:
+          type: string
+        effective_date:
+          type: string
+          format: date
+        proposed_by:
+          type: integer
+        approved_by:
+          type: integer
+    GoldRateCurrentResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/GoldRateResponse'
+    GoldRateCreateResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/GoldRateResponse'
+    JewelleryImageResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        jewellery_item_id:
+          type: integer
+        file_ref:
+          type: string
+    JewelleryImageCreateResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/JewelleryImageResponse'
+    JewelleryBarcodeResponse:
+      type: object
+      properties:
+        barcode:
+          type: string
+    LoanCalculationResponse:
+      type: object
+      properties:
+        eligible_amount:
+          type: number
+        interest_rate_pct:
+          type: number
+        interest_type:
+          type: string
+        tenure_months:
+          type: integer
+        processing_fee:
+          type: number
+        gst_amount:
+          type: number
+        insurance_amount:
+          type: number
+        net_disbursed_amount:
+          type: number
+    LoanResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        loan_account_number:
+          type: string
+        customer_id:
+          type: integer
+        branch_id:
+          type: integer
+        loan_product_id:
+          type: integer
+        eligible_amount:
+          type: number
+        sanctioned_amount:
+          type: number
+        interest_rate_pct:
+          type: number
+        processing_fee:
+          type: number
+        gst_amount:
+          type: number
+        insurance_amount:
+          type: number
+        net_disbursed_amount:
+          type: number
+        status:
+          type: string
+    LoanCreateResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/LoanResponse'
+    LoanApprovalPendingResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/LoanResponse'
+    LoanEmiScheduleResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: integer
+              due_date:
+                type: string
+                format: date
+              interest_due:
+                type: number
+    LoanDisbursementResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/LoanDisbursement'
+    LoanDisbursement:
+      type: object
+      properties:
+        id:
+          type: integer
+        loan_id:
+          type: integer
+        mode:
+          type: string
+        amount:
+          type: number
+        reference_number:
+          type: string
+        status:
+          type: string
+    PartPaymentResponse:
+      type: object
+      properties:
+        data:
+          type: object
+    NotificationLogResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/NotificationLog'
+    NotificationLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        channel:
+          type: string
+        recipient:
+          type: string
+        status:
+          type: string
+    DashboardSummaryResponse:
+      type: object
+      properties:
+        today_loans:
+          type: integer
+        collections:
+          type: number
+        renewals:
+          type: integer
+        pending_approvals:
+          type: integer
+        auction_count:
+          type: integer
+        cash_position:
+          type: number
+        gold_weight:
+          type: number
+        portfolio_total:
+          type: number
+    ReportResponse:
+      type: object
+      properties:
+        report:
+          type: string
+        branch_id:
+          type: integer
+        date:
+          type: string
+          format: date
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/LoanResponse'
+    VoucherResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Voucher'
+    Voucher:
+      type: object
+      properties:
+        id:
+          type: integer
+        voucher_number:
+          type: string
+        branch_id:
+          type: integer
+        type:
+          type: string
+        voucher_date:
+          type: string
+          format: date
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoucherDetail'
+    VoucherDetail:
+      type: object
+      properties:
+        gl_account_id:
+          type: integer
+        debit:
+          type: number
+        credit:
+          type: number
+    CustomerLedgerResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerLedgerEntry'
+    CustomerLedgerEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        customer_id:
+          type: integer
+        entry_type:
+          type: string
+        amount:
+          type: number
+        balance:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+    InventoryPacketResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/InventoryPacket'
+    InventoryPacket:
+      type: object
+      properties:
+        id:
+          type: integer
+        packet_number:
+          type: string
+        status:
+          type: string
+        branch_id:
+          type: integer
+    VaultStatusResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+    SyncQueueResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    SyncDeltaResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+    MasterBranchResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    MasterLoanProductResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    MasterRoleResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            additionalProperties: true

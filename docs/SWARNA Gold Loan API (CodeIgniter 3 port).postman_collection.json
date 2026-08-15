@@ -1,0 +1,2193 @@
+{
+  "info": {
+    "_postman_id": "4fb6f58f-f9ba-43c1-8705-fba7706277d2",
+    "name": "SWARNA Gold Loan API (CodeIgniter 3 port)",
+    "description": "Covers every /api/v1 endpoint ported to codeigniter3-app. Set {{base_url}} (default http://localhost:8080) and run 'Auth > Login' first — its Tests script saves the returned token into {{token}}, used as the Bearer token for every other request via the collection-level auth.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "22248985"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.token) { pm.collectionVariables.set('token', json.token); }",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emil\": \"1234@gmail.com\",\n  \"password\": \"1234\",\n  \"device_id\": \"{{device_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send OTP",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobile\": \"9999999999\",\n  \"purpose\": \"LOGIN\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/otp/send",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "otp",
+                "send"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobile\": \"9999999999\",\n  \"purpose\": \"LOGIN\",\n  \"otp\": \"123456\",\n  \"device_id\": \"{{device_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/otp/verify",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "otp",
+                "verify"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/refresh-token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "refresh-token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Bind Device",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"{{device_id}}\",\n  \"device_model\": \"Pixel 8\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/device/bind",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "device",
+                "bind"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Set MPIN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mpin\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/mpin/set",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "mpin",
+                "set"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Customer",
+      "item": [
+        {
+          "name": "Create Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Customer\",\n  \"mobile\": \"9876543210\",\n  \"dob\": \"1990-01-01\",\n  \"gender\": \"MALE\",\n  \"branch_id\": 1,\n  \"address\": {\n    \"line1\": \"123 Main St\",\n    \"city\": \"Chennai\",\n    \"state\": \"Tamil Nadu\",\n    \"pincode\": \"600001\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/customer",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "customer"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Customers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/customer/search?mobile=9876543210",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "mobile",
+                  "value": "9876543210"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Duplicate Check",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobile\": \"9876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/customer/duplicate-check",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "duplicate-check"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Show Customer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/customer/{{customer_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "{{customer_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Nominee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nominee Name\",\n  \"relation\": \"Spouse\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/customer/{{customer_id}}/nominee",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "{{customer_id}}",
+                "nominee"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Family Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Family Member\",\n  \"relation\": \"Sibling\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/customer/{{customer_id}}/family-member",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "{{customer_id}}",
+                "family-member"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Merge Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merged_customer_id\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/customer/{{customer_id}}/merge",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "customer",
+                "{{customer_id}}",
+                "merge"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "KYC",
+      "item": [
+        {
+          "name": "Aadhaar QR Scan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": {{customer_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/kyc/aadhaar/qr-scan",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kyc",
+                "aadhaar",
+                "qr-scan"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Aadhaar Offline XML",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": {{customer_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/kyc/aadhaar/offline-xml",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kyc",
+                "aadhaar",
+                "offline-xml"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Aadhaar Face Auth",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": {{customer_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/kyc/aadhaar/face-auth",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kyc",
+                "aadhaar",
+                "face-auth"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Aadhaar Masked",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/kyc/aadhaar/{{customer_id}}/masked",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kyc",
+                "aadhaar",
+                "{{customer_id}}",
+                "masked"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PAN Validate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": {{customer_id}},\n  \"pan_number\": \"ABCDE1234F\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/kyc/pan/validate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kyc",
+                "pan",
+                "validate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload KYC Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "customer_id",
+                  "value": "{{customer_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "document_type_id",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "value": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/kyc/document",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kyc",
+                "document"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Customer Documents",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/kyc/document/{{customer_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kyc",
+                "document",
+                "{{customer_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify/Reject Document",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"VERIFIED\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/kyc/document/1/verify",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kyc",
+                "document",
+                "1",
+                "verify"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Jewellery",
+      "item": [
+        {
+          "name": "Evaluate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": {{customer_id}},\n  \"category_id\": 1,\n  \"gross_weight\": 25.5,\n  \"stone_weight\": 1.2,\n  \"purity_karat\": \"22K\",\n  \"hallmark_flag\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/jewellery/evaluate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "jewellery",
+                "evaluate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Current Rate",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/jewellery/rate/current?karat=22K",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "jewellery",
+                "rate",
+                "current"
+              ],
+              "query": [
+                {
+                  "key": "karat",
+                  "value": "22K"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Propose Rate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rate_per_gram\": 6200.00,\n  \"karat\": \"22K\",\n  \"effective_date\": \"2026-08-02\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/jewellery/rate/propose",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "jewellery",
+                "rate",
+                "propose"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Rate",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/jewellery/rate/1/approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "jewellery",
+                "rate",
+                "1",
+                "approve"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Jewellery Image",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "value": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/jewellery/{{jewellery_item_id}}/image",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "jewellery",
+                "{{jewellery_item_id}}",
+                "image"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Barcode",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/jewellery/{{jewellery_item_id}}/barcode",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "jewellery",
+                "{{jewellery_item_id}}",
+                "barcode"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Loan",
+      "item": [
+        {
+          "name": "Calculate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"loan_product_id\": 1,\n  \"jewellery_item_ids\": [1]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/calculate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "calculate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Store (create DRAFT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": {{customer_id}},\n  \"branch_id\": 1,\n  \"loan_product_id\": 1,\n  \"jewellery_item_ids\": [1]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "EMI Schedule",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/emi-schedule",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "emi-schedule"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Pending Approval",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/pending-approval",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "pending-approval"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Submit For Approval",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/submit-for-approval",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "submit-for-approval"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Approve",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "approve"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"remarks\": \"Insufficient documentation\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/reject",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "reject"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Override",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"remarks\": \"Regional manager override\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/override",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "override"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Servicing (Disbursement/Renewal/Topup/Interest/Payment/Settlement/Release)",
+      "item": [
+        {
+          "name": "Disburse",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"CASH\",\n  \"amount\": 15000.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/disburse",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "disburse"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Renewal Eligibility",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/renewal-eligibility",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "renewal-eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Renew",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"renewed_tenure_months\": 12,\n  \"interest_paid\": 500.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/renew",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "renew"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Topup Eligibility",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/topup/eligibility",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "topup",
+                "eligibility"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Topup Approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approved_amount\": 5000.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/topup/approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "topup",
+                "approve"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Topup Disburse",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/topup/disburse",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "topup",
+                "disburse"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Interest Due",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/interest/due",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "interest",
+                "due"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Interest Collect",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 500.00,\n  \"mode\": \"CASH\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/interest/collect",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "interest",
+                "collect"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Part Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"principal_amount\": 2000.00,\n  \"interest_amount\": 200.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/part-payment",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "part-payment"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reload_amount\": 3000.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/reload",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "reload"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Closure Statement",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/closure-statement",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "closure-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Settle",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/settle",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "settle"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Gold Release: Verify ID",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/{{loan_id}}/gold-release/verify-id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "{{loan_id}}",
+                "gold-release",
+                "verify-id"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Gold Release: Capture Signature",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/goldrelease/{{loan_id}}/capture-signature",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "goldrelease",
+                "{{loan_id}}",
+                "capture-signature"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Gold Release: Complete",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jewellery_item_id\": {{jewellery_item_id}},\n  \"released_to\": \"Customer Name\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loan/goldrelease/{{loan_id}}/complete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loan",
+                "goldrelease",
+                "{{loan_id}}",
+                "complete"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auction",
+      "item": [
+        {
+          "name": "Schedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch_id\": 1,\n  \"auction_date\": \"2026-09-01\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auction/schedule",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auction",
+                "schedule"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Notice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"loan_id\": {{loan_id}},\n  \"channel\": \"SMS\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auction/1/notice",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auction",
+                "1",
+                "notice"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Bidder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bidder Name\",\n  \"mobile\": \"9000000000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auction/1/bidder",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auction",
+                "1",
+                "bidder"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Place Bid",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gold_packet_id\": 1,\n  \"bidder_id\": 1,\n  \"bid_amount\": 20000.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auction/1/bid",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auction",
+                "1",
+                "bid"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Declare Winner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gold_packet_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auction/1/winner",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auction",
+                "1",
+                "winner"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Settle",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gold_packet_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auction/1/settle",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auction",
+                "1",
+                "settle"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "Store Packet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jewellery_item_id\": {{jewellery_item_id}},\n  \"vault_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/inventory/packet",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "inventory",
+                "packet"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Transfer Packet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to_vault_id\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/inventory/packet/1/transfer",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "inventory",
+                "packet",
+                "1",
+                "transfer"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vault Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/inventory/vault/1/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "inventory",
+                "vault",
+                "1",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Accounting",
+      "item": [
+        {
+          "name": "Store Voucher",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch_id\": 1,\n  \"type\": \"RECEIPT\",\n  \"voucher_date\": \"2026-08-02\",\n  \"details\": [\n    { \"gl_account_id\": 1, \"debit\": 1000.00, \"credit\": 0 },\n    { \"gl_account_id\": 2, \"debit\": 0, \"credit\": 1000.00 }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/accounting/voucher",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounting",
+                "voucher"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Customer Ledger",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/accounting/ledger/{{customer_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "accounting",
+                "ledger",
+                "{{customer_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notifications / Dashboard / Reports / Sync",
+      "item": [
+        {
+          "name": "Send Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": {{customer_id}},\n  \"template_code\": \"LOAN_APPROVED\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/notify/SMS",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notify",
+                "SMS"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/summary?branchId=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "branchId",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Report: Daily Cash",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/DAILY_CASH?branchId=1&date=2026-08-02",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "DAILY_CASH"
+              ],
+              "query": [
+                {
+                  "key": "branchId",
+                  "value": "1"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-08-02"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Report: NPA",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/NPA",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "NPA"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sync Upload Queue",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entity_type\": \"Loan\",\n  \"payload\": {}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/sync/upload-queue",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sync",
+                "upload-queue"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sync Download Delta",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/sync/download-delta?since=2026-08-01T00:00:00Z",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sync",
+                "download-delta"
+              ],
+              "query": [
+                {
+                  "key": "since",
+                  "value": "2026-08-01T00:00:00Z"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Master",
+      "item": [
+        {
+          "name": "List Branches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/master/branch",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "master",
+                "branch"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Branch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch_code\": \"H001-BR002\",\n  \"name\": \"Second Branch\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/master/branch",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "master",
+                "branch"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Loan Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/master/loan-product",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "master",
+                "loan-product"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Loan Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"PROD002\",\n  \"name\": \"Express Gold Loan\",\n  \"interest_rate_pct\": 1.2,\n  \"interest_type\": \"FLAT\",\n  \"tenure_months\": 6\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/master/loan-product",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "master",
+                "loan-product"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/master/role",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "master",
+                "role"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": "test-device-001"
+    },
+    {
+      "key": "customer_id",
+      "value": "1"
+    },
+    {
+      "key": "loan_id",
+      "value": "1"
+    },
+    {
+      "key": "jewellery_item_id",
+      "value": "1"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /mayogl/
+
+    RewriteCond %{REQUEST_URI} ^(system|application)(/|$) [NC]
+    RewriteRule ^(.*)$ index.php?/$1 [L]
+
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ index.php/$1 [L]
+</IfModule>
+
+<IfModule mime_module>
+    AddHandler application/x-httpd-ea-php74 .php .php5 .phtml
+</IfModule>
+
+<IfModule mod_env.c>
+    SetEnv CI_ENV production
+</IfModule>
