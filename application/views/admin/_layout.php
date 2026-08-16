@@ -25,6 +25,7 @@
             <a class="nav-link rounded px-2 py-2 <?php echo strpos($uri, 'admin/customers') !== false ? 'active' : ''; ?>" href="<?php echo base_url('admin/customers'); ?>"><i class="bi bi-person-vcard me-2"></i>Customers</a>
             <a class="nav-link rounded px-2 py-2 <?php echo strpos($uri, 'admin/loans') !== false ? 'active' : ''; ?>" href="<?php echo base_url('admin/loans'); ?>"><i class="bi bi-cash-coin me-2"></i>Loans</a>
             <a class="nav-link rounded px-2 py-2 <?php echo strpos($uri, 'admin/reports') !== false ? 'active' : ''; ?>" href="<?php echo base_url('admin/reports'); ?>"><i class="bi bi-bar-chart me-2"></i>Reports</a>
+            <a class="nav-link rounded px-2 py-2 <?php echo strpos($uri, 'admin/masters') !== false ? 'active' : ''; ?>" href="<?php echo base_url('admin/masters'); ?>"><i class="bi bi-sliders me-2"></i>Masters</a>
         </div>
         <form method="POST" action="<?php echo base_url('admin/logout'); ?>" class="mt-4">
             <button type="submit" class="btn btn-outline-light btn-sm w-100"><i class="bi bi-box-arrow-left me-1"></i>Logout</button>

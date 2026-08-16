@@ -6,7 +6,7 @@
             <div class="card-header bg-white fw-semibold">Loan Details</div>
             <div class="card-body">
                 <div class="row g-3">
-                    <div class="col-md-4"><strong>A/C No.:</strong> <?php echo htmlspecialchars($loan['loan_account_number']); ?></div>
+                    <div class="col-md-4"><strong>A/C No.:</strong> <?php echo htmlspecialchars($loan['loan_account_number'] ?? 'Pending disbursement'); ?></div>
                     <div class="col-md-4"><strong>Status:</strong> <span class="badge bg-secondary"><?php echo htmlspecialchars($loan['status']); ?></span></div>
                     <div class="col-md-4"><strong>Customer:</strong> <?php echo htmlspecialchars($loan['customer_name'] ?? '—'); ?></div>
                     <div class="col-md-4"><strong>Branch:</strong> <?php echo htmlspecialchars($loan['branch_name'] ?? '—'); ?></div>

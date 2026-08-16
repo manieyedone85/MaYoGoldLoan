@@ -16,6 +16,7 @@ class Loan extends Api_Controller
         $this->load->model('Jewellery_item_model', 'jewellery_items');
         $this->load->model('Jewellery_image_model', 'jewellery_images');
         $this->load->model('Customer_model', 'customers');
+        $this->load->model('Customer_address_model', 'customer_addresses');
         $this->load->model('Branch_model', 'branches');
         $this->load->model('Loan_disbursement_model', 'loan_disbursements');
         $this->load->model('Interest_collection_model', 'interest_collections');
@@ -26,6 +27,7 @@ class Loan extends Api_Controller
         $this->load->model('Loan_topup_model', 'loan_topups');
         $this->load->model('Loan_reload_model', 'loan_reloads');
         $this->load->model('Loan_closure_model', 'loan_closures');
+        $this->load->model('Loan_document_model', 'loan_documents');
     }
 
     /** POST /api/v1/loan/calculate */
@@ -47,6 +49,18 @@ class Loan extends Api_Controller
         $insurance = round($eligibleAmount * ($product['insurance_pct'] / 100), 2);
         $netDisbursed = $eligibleAmount - $processingFee - $gst - $insurance;
 
+        // BRD §9 "Generate EMI/repayment schedule before confirmation"
+        // (docs/BRD_COVERAGE_AUDIT.md): previously emi_schedule() only existed
+        // as a separate endpoint callable after the loan already existed.
+        // sanctioned_amount == eligible_amount at creation time (see store()
+        // below), so this preview is exactly what store() would produce.
+        $emiSchedule = $this->_build_emi_schedule_from_values(
+            $eligibleAmount,
+            $product['interest_rate_pct'],
+            date('Y-m-d'),
+            $product['tenure_months']
+        );
+
         return json_response(array(
             'eligible_amount' => $eligibleAmount,
             'interest_rate_pct' => $product['interest_rate_pct'],
@@ -56,16 +70,30 @@ class Loan extends Api_Controller
             'gst_amount' => $gst,
             'insurance_amount' => $insurance,
             'net_disbursed_amount' => $netDisbursed,
+            'emi_schedule' => $emiSchedule,
         ));
     }
 
-    /** POST /api/v1/loan  (create in DRAFT, then submit-for-approval) */
+    /**
+     * POST /api/v1/loan  (create in DRAFT, then submit-for-approval)
+     *
+     * Accepts either an existing `customer_id` or an inline `customer` object
+     * (name/mobile/email/dob/gender/address) to create the customer as part
+     * of the same request -- BRD §9 "Select or create the customer"
+     * (docs/BRD_COVERAGE_AUDIT.md). Previously this endpoint only accepted an
+     * existing customer_id; admin/Loans.php already had both paths, so the
+     * inline-creation fields mirror Customer::store()'s validation exactly.
+     */
     public function store()
     {
         $user = $this->require_auth();
 
         $data = $this->json_input();
-        $error = $this->_validate_calculate_input($data);
+        $error = $this->_validate_customer_input($data);
+        if ($error) {
+            return json_error($error);
+        }
+        $error = $this->_validate_loan_input($data);
         if ($error) {
             return json_error($error);
         }
@@ -80,9 +108,13 @@ class Loan extends Api_Controller
 
         $this->db->trans_start();
 
+        $customerId = $this->_resolve_customer($data, $user['id']);
+
         $loanId = $this->loans->insert(array(
-            'loan_account_number' => $this->loans->next_loan_account_number(),
-            'customer_id' => $data['customer_id'],
+            // loan_account_number is intentionally not set here -- BRD §9
+            // "Unique Loan ID created after disbursement" -- it's assigned
+            // in Disbursement::disburse() once the loan actually disburses.
+            'customer_id' => $customerId,
             'branch_id' => $data['branch_id'],
             'loan_product_id' => $product['id'],
             'eligible_amount' => $eligibleAmount,
@@ -177,9 +209,12 @@ class Loan extends Api_Controller
         $reloads = $this->loan_reloads->all(array('loan_id' => $loan_id));
         $closures = $this->loan_closures->all(array('loan_id' => $loan_id));
         $approval_logs = $this->loan_approval_logs->for_loan($loan_id);
+        $documents = $this->loan_documents->for_loan($loan_id);
+
+        $loan_label = $loan['loan_account_number'] ?? ('#' . $loan_id . ' (pending disbursement)');
 
         $timeline = array();
-        $timeline[] = array('type' => 'LOAN_CREATED', 'at' => $loan['created_at'], 'summary' => 'Loan ' . $loan['loan_account_number'] . ' created.');
+        $timeline[] = array('type' => 'LOAN_CREATED', 'at' => $loan['created_at'], 'summary' => 'Loan ' . $loan_label . ' created.');
         foreach ($approval_logs as $row) {
             $timeline[] = array('type' => 'APPROVAL_' . $row['action'], 'at' => $row['created_at'], 'summary' => $row['stage'] . ': ' . $row['action']);
         }
@@ -208,7 +243,12 @@ class Loan extends Api_Controller
             return strcmp((string) $a['at'], (string) $b['at']);
         });
 
-        $active_statuses = array('ACTIVE', 'PART_PAID');
+        // RENEWED must count as an active/servicing status here -- a renewed
+        // loan is still a live loan that can be paid, topped up, re-loaned
+        // against, or settled. Omitting it (as every one of these status
+        // checks across Renewal/Topup/Part_payment/Settlement originally did)
+        // would make renewal a one-way trip out of every other servicing flow.
+        $active_statuses = array('ACTIVE', 'PART_PAID', 'RENEWED');
         $is_active = in_array($loan['status'], $active_statuses, true);
 
         return json_response(array('data' => array(
@@ -221,6 +261,7 @@ class Loan extends Api_Controller
                 'tenure_months' => $product ? (int) $product['tenure_months'] : null,
             )),
             'jewellery_items' => $jewellery_items,
+            'documents' => $documents,
             'payments' => array(
                 'disbursements' => $disbursements,
                 'interest_collections' => $interest_collections,
@@ -246,14 +287,31 @@ class Loan extends Api_Controller
 
     private function _build_emi_schedule($loan, $product)
     {
-        $months = $product ? (int) $product['tenure_months'] : 0;
-        $monthlyInterest = round(((float) $loan['sanctioned_amount'] * (float) $loan['interest_rate_pct'] / 100) / 12, 2);
+        return $this->_build_emi_schedule_from_values(
+            $loan['sanctioned_amount'],
+            $loan['interest_rate_pct'],
+            $loan['loan_date'],
+            $product ? $product['tenure_months'] : 0
+        );
+    }
+
+    /**
+     * Interest-only schedule (bullet repayment: interest serviced monthly,
+     * principal due at closure) -- the standard Indian gold-loan repayment
+     * model, same formula admin/Loans.php's inline creation flow uses.
+     * Split out from _build_emi_schedule() so calculate() can preview it
+     * before a loan row exists at all.
+     */
+    private function _build_emi_schedule_from_values($sanctioned_amount, $interest_rate_pct, $loan_date, $tenure_months)
+    {
+        $months = (int) $tenure_months;
+        $monthlyInterest = round(((float) $sanctioned_amount * (float) $interest_rate_pct / 100) / 12, 2);
 
         $schedule = array();
         for ($m = 1; $m <= $months; $m++) {
             $schedule[] = array(
                 'month' => $m,
-                'due_date' => $this->_add_months($loan['loan_date'], $m),
+                'due_date' => $this->_add_months($loan_date, $m),
                 'interest_due' => $monthlyInterest,
             );
         }
@@ -267,6 +325,13 @@ class Loan extends Api_Controller
         if (empty($data['customer_id']) || ! $this->customers->find($data['customer_id'])) {
             return 'customer_id is required and must exist.';
         }
+
+        return $this->_validate_loan_input($data);
+    }
+
+    /** Branch/product/jewellery validation shared by calculate() and store() -- customer is validated separately. */
+    private function _validate_loan_input($data)
+    {
         if (empty($data['branch_id']) || ! $this->branches->find($data['branch_id'])) {
             return 'branch_id is required and must exist.';
         }
@@ -276,13 +341,117 @@ class Loan extends Api_Controller
         if (empty($data['jewellery_item_ids']) || ! is_array($data['jewellery_item_ids'])) {
             return 'jewellery_item_ids is required and must be an array with at least one item.';
         }
+
+        $items = $this->jewellery_items->find_in($data['jewellery_item_ids']);
+        $found_ids = array_column($items, 'id');
         foreach ($data['jewellery_item_ids'] as $item_id) {
-            if (! $this->jewellery_items->find($item_id)) {
+            if (! in_array((int) $item_id, array_map('intval', $found_ids), true)) {
                 return "jewellery_item_ids contains an id ({$item_id}) that does not exist.";
+            }
+        }
+        // Existence alone isn't enough: without this, an item already
+        // PLEDGED to another active loan could be silently re-pointed onto a
+        // new one by mark_pledged() (an unconditional where_in() update with
+        // no ownership/status predicate) -- the same collateral would then
+        // back two loans at once, and the original loan would be left
+        // unsecured with no error or audit trail.
+        foreach ($items as $item) {
+            if ($item['status'] !== 'EVALUATED') {
+                return "jewellery_item_ids contains an id ({$item['id']}) that is not available to pledge (status {$item['status']}).";
             }
         }
 
         return null;
+    }
+
+    /**
+     * Validates either an existing `customer_id` or an inline `customer`
+     * object (BRD §9 "Select or create the customer"). Field rules mirror
+     * Customer::store() exactly.
+     *
+     * @return string|null error message, or null if valid
+     */
+    private function _validate_customer_input($data)
+    {
+        if (! empty($data['customer_id'])) {
+            return $this->customers->find($data['customer_id']) ? null : 'customer_id must reference an existing customer.';
+        }
+
+        if (empty($data['customer']) || ! is_array($data['customer'])) {
+            return 'customer_id or customer is required.';
+        }
+
+        $customer = $data['customer'];
+
+        if (empty($customer['name']) || strlen((string) $customer['name']) > 150) {
+            return 'customer.name is required and must be at most 150 characters.';
+        }
+        if (empty($customer['mobile']) || strlen((string) $customer['mobile']) !== 10) {
+            return 'customer.mobile is required and must be exactly 10 characters.';
+        }
+        if (! empty($customer['email']) && (strlen((string) $customer['email']) > 150 || ! filter_var($customer['email'], FILTER_VALIDATE_EMAIL))) {
+            return 'customer.email must be a valid email address of at most 150 characters.';
+        }
+        if (! empty($customer['dob']) && strtotime($customer['dob']) === false) {
+            return 'customer.dob must be a valid date.';
+        }
+        if (! empty($customer['gender']) && ! in_array($customer['gender'], array('MALE', 'FEMALE', 'OTHER'), true)) {
+            return 'customer.gender must be one of MALE, FEMALE, OTHER.';
+        }
+        if (empty($customer['address']) || ! is_array($customer['address'])) {
+            return 'customer.address is required.';
+        }
+
+        $address = $customer['address'];
+
+        if (empty($address['line1']) || strlen((string) $address['line1']) > 255) {
+            return 'customer.address.line1 is required and must be at most 255 characters.';
+        }
+        if (empty($address['city']) || strlen((string) $address['city']) > 100) {
+            return 'customer.address.city is required and must be at most 100 characters.';
+        }
+        if (empty($address['state']) || strlen((string) $address['state']) > 100) {
+            return 'customer.address.state is required and must be at most 100 characters.';
+        }
+        if (empty($address['pincode']) || strlen((string) $address['pincode']) > 10) {
+            return 'customer.address.pincode is required and must be at most 10 characters.';
+        }
+
+        return null;
+    }
+
+    /** Returns the existing customer_id, or creates the customer+address inline and returns the new id. */
+    private function _resolve_customer($data, $registered_by)
+    {
+        if (! empty($data['customer_id'])) {
+            return $data['customer_id'];
+        }
+
+        $customer = $data['customer'];
+
+        $customer_id = $this->customers->insert(array(
+            'customer_code' => $this->customers->next_customer_code(),
+            'name' => $customer['name'],
+            'mobile' => $customer['mobile'],
+            'email' => $customer['email'] ?? null,
+            'dob' => $customer['dob'] ?? null,
+            'gender' => $customer['gender'] ?? null,
+            'branch_id' => $data['branch_id'],
+            'registered_by' => $registered_by,
+            'kyc_status' => 'PENDING',
+        ));
+
+        $this->customer_addresses->insert(array(
+            'customer_id' => $customer_id,
+            'type' => 'CURRENT',
+            'line1' => $customer['address']['line1'],
+            'line2' => $customer['address']['line2'] ?? null,
+            'city' => $customer['address']['city'],
+            'state' => $customer['address']['state'],
+            'pincode' => $customer['address']['pincode'],
+        ));
+
+        return $customer_id;
     }
 
     private function _add_months($date, $months)

@@ -26,7 +26,7 @@
                     <tr><td colspan="3" class="text-muted text-center">No loans yet.</td></tr>
                 <?php else: foreach ($loans as $loan): ?>
                     <tr>
-                        <td><a href="<?php echo base_url('admin/loans/' . $loan['id']); ?>"><?php echo htmlspecialchars($loan['loan_account_number']); ?></a></td>
+                        <td><a href="<?php echo base_url('admin/loans/' . $loan['id']); ?>"><?php echo htmlspecialchars($loan['loan_account_number'] ?? 'Pending disbursement'); ?></a></td>
                         <td><span class="badge bg-secondary"><?php echo htmlspecialchars($loan['status']); ?></span></td>
                         <td>₹<?php echo number_format($loan['sanctioned_amount'], 2); ?></td>
                     </tr>

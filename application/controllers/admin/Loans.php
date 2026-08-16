@@ -32,6 +32,7 @@ class Loans extends Admin_Controller
         $this->load->model('Loan_disbursement_model', 'loan_disbursements');
         $this->load->model('Interest_collection_model', 'interest_collections');
         $this->load->model('Customer_address_model', 'customer_addresses');
+        $this->load->model('Jewellery_valuation_history_model', 'valuation_history');
     }
 
     /** GET /admin/loans */
@@ -259,6 +260,17 @@ class Loans extends Admin_Controller
                 'status' => 'EVALUATED',
             ));
 
+            $this->valuation_history->insert(array(
+                'jewellery_item_id' => $item_id,
+                'gold_rate_id' => $gold_rate['id'],
+                'gross_weight' => $gross_weight,
+                'stone_weight' => $stone_weight,
+                'applied_rate' => $gold_rate['rate_per_gram'],
+                'eligible_percentage' => $eligible_percentage,
+                'eligible_amount' => $item_eligible_amount,
+                'evaluated_by' => $admin_id,
+            ));
+
             $item_ids[] = $item_id;
             $eligible_amount += $item_eligible_amount;
         }
@@ -269,7 +281,10 @@ class Loans extends Admin_Controller
         $net_disbursed_amount = $eligible_amount - $processing_fee - $gst_amount - $insurance_amount;
 
         $loan_id = $this->loans->insert(array(
-            'loan_account_number' => $this->loans->next_loan_account_number(),
+            // loan_account_number is intentionally not set here -- BRD §9
+            // "Unique Loan ID created after disbursement" -- it's assigned
+            // in Disbursement::disburse() once the loan actually disburses,
+            // even for loans created (and auto-approved) directly here.
             'customer_id' => $customer_id,
             'branch_id' => $branch_id,
             'loan_product_id' => $product['id'],
@@ -319,8 +334,7 @@ class Loans extends Admin_Controller
             return;
         }
 
-        $loan = $this->loans->find($loan_id);
-        $this->session->set_flashdata('status', 'Loan ' . $loan['loan_account_number'] . ' created and approved.');
+        $this->session->set_flashdata('status', 'Loan #' . $loan_id . ' created and approved. The loan account number will be assigned on disbursement.');
         redirect('admin/loans/' . $loan_id);
     }
 

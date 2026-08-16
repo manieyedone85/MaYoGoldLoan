@@ -5,11 +5,20 @@ class Loan_model extends MY_Model
 {
     protected $table = 'loans';
 
-    public function next_loan_account_number()
+    /**
+     * Deterministic loan account number derived from the row's own
+     * AUTO_INCREMENT id -- replaces a former SELECT MAX(id)+1 approach that
+     * was non-atomic (two concurrent inserts could read the same MAX(id)
+     * before either committed). MySQL already allocates `id` atomically, so
+     * deriving the number from it needs no locking or retry logic.
+     *
+     * Not called at loan creation: BRD §9 "Unique Loan ID created after
+     * disbursement" (docs/BRD_COVERAGE_AUDIT.md) means the number is only
+     * assigned once, in Disbursement::disburse().
+     */
+    public function loan_account_number_for_id($id)
     {
-        $max_id = (int) $this->db->select_max('id')->get($this->table)->row('id');
-
-        return 'LGH001' . str_pad((string) ($max_id + 1), 9, '0', STR_PAD_LEFT);
+        return 'LGH001' . str_pad((string) $id, 9, '0', STR_PAD_LEFT);
     }
 
     /**

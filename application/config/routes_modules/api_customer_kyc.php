@@ -10,6 +10,7 @@ $route['api/v1/customer/(:num)/loans']['get'] = 'api/v1/customer/loans/$1';
 $route['api/v1/customer/(:num)/nominee']['post'] = 'api/v1/customer/add_nominee/$1';
 $route['api/v1/customer/(:num)/family-member']['post'] = 'api/v1/customer/add_family_member/$1';
 $route['api/v1/customer/(:num)/merge']['post'] = 'api/v1/customer/merge/$1';
+$route['api/v1/customer/(:num)/kyc-status']['put'] = 'api/v1/customer/update_kyc_status/$1';
 
 // ---------------- Module 3-5: KYC ----------------
 $route['api/v1/kyc/aadhaar/qr-scan']['post'] = 'api/v1/kyc_aadhaar/qr_scan';
@@ -23,3 +24,4 @@ $route['api/v1/kyc/document']['post'] = 'api/v1/kyc_document/store';
 $route['api/v1/kyc/document-types']['get'] = 'api/v1/kyc_document/document_types_index';
 $route['api/v1/kyc/document/(:num)']['get'] = 'api/v1/kyc_document/index/$1';
 $route['api/v1/kyc/document/(:num)/verify']['put'] = 'api/v1/kyc_document/verify/$1';
+$route['api/v1/kyc/document/(:num)/file']['get'] = 'api/v1/kyc_document/download/$1';

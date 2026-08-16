@@ -10,12 +10,14 @@ $route['api/v1/loan/(:num)/renew']['post'] = 'api/v1/renewal/renew/$1';
 
 // Top-up
 $route['api/v1/loan/(:num)/topup/eligibility']['get'] = 'api/v1/topup/eligibility/$1';
+$route['api/v1/loan/(:num)/topup/add-jewellery']['post'] = 'api/v1/topup/add_jewellery/$1';
 $route['api/v1/loan/(:num)/topup/approve']['post'] = 'api/v1/topup/approve/$1';
 $route['api/v1/loan/(:num)/topup/disburse']['post'] = 'api/v1/topup/disburse/$1';
 
 // Interest
 $route['api/v1/loan/(:num)/interest/due']['get'] = 'api/v1/interest/due/$1';
 $route['api/v1/loan/(:num)/interest/collect']['post'] = 'api/v1/interest/collect/$1';
+$route['api/v1/interest/collection/(:num)/receipt']['get'] = 'api/v1/interest/receipt/$1';
 
 // Part payment / reload
 $route['api/v1/loan/(:num)/part-payment']['post'] = 'api/v1/part_payment/part_payment/$1';

@@ -59,7 +59,7 @@
                     <tr><td colspan="5" class="text-center text-muted py-4">No loans yet.</td></tr>
                 <?php else: foreach ($recent_loans as $loan): ?>
                     <tr>
-                        <td><a href="<?php echo base_url('admin/loans/' . $loan['id']); ?>"><?php echo htmlspecialchars($loan['loan_account_number']); ?></a></td>
+                        <td><a href="<?php echo base_url('admin/loans/' . $loan['id']); ?>"><?php echo htmlspecialchars($loan['loan_account_number'] ?? 'Pending disbursement'); ?></a></td>
                         <td><?php echo htmlspecialchars($loan['customer_name'] ?? '—'); ?></td>
                         <td><?php echo htmlspecialchars($loan['branch_name'] ?? '—'); ?></td>
                         <td>₹<?php echo number_format($loan['sanctioned_amount'], 2); ?></td>

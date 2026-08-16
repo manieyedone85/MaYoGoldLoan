@@ -21,6 +21,7 @@ class Customer extends Api_Controller
         $this->load->model('Customer_family_member_model', 'family_members');
         $this->load->model('Customer_nominee_model', 'nominees');
         $this->load->model('Customer_merge_log_model', 'merge_logs');
+        $this->load->model('Customer_duplicate_log_model', 'duplicate_logs');
         $this->load->model('Branch_model', 'branches');
     }
 
@@ -92,6 +93,8 @@ class Customer extends Api_Controller
             'pincode' => $address['pincode'],
         ));
 
+        $duplicates = $this->detect_duplicates($customer_id, $data['mobile'], $data['aadhaar_hash'] ?? null);
+
         $this->db->trans_complete();
 
         if (! $this->db->trans_status()) {
@@ -100,6 +103,7 @@ class Customer extends Api_Controller
 
         $customer = $this->customers->find($customer_id);
         $customer['addresses'] = $this->addresses->for_customer($customer_id);
+        $customer['possible_duplicates'] = $duplicates;
 
         $this->audit_log('Customer', $customer_id, 'CREATE', null, $customer);
 
@@ -150,6 +154,55 @@ class Customer extends Api_Controller
         $results = $query->limit(20)->get()->result_array();
 
         return json_response(array('data' => $results));
+    }
+
+    /**
+     * Persists a `customer_duplicate_log` row (status PENDING_REVIEW, ready
+     * for a reviewer to CONFIRM/DISMISS) for every existing, non-deleted
+     * customer that shares this new customer's mobile or aadhaar_hash.
+     * Called from store() so duplicate creation is actually detected and
+     * logged, not just reported back on request via duplicate_check() —
+     * see BRD §7 "duplicate customer creation is detected" in
+     * docs/BRD_COVERAGE_AUDIT.md. Never blocks the insert: a shared mobile
+     * number can be legitimate (family members), so this flags for human
+     * review rather than rejecting the request.
+     */
+    private function detect_duplicates($customer_id, $mobile, $aadhaar_hash)
+    {
+        // Select only what's needed to score the match (aadhaar_hash) plus
+        // enough for a reviewer to recognize the candidate -- never the full
+        // row. This used to be an unqualified `SELECT *`, so aadhaar_hash,
+        // aadhaar_last4, pan_number, dob and email for a customer at ANY
+        // branch were returned straight back to the (possibly unrelated)
+        // caller in the 201 response and copied into audit_log's JSON,
+        // turning customer creation into a PII enumeration oracle over the
+        // whole customer base.
+        $query = $this->db->select('id, customer_code, name, mobile, branch_id, kyc_status, aadhaar_hash')
+            ->from('customers')
+            ->where('deleted_at IS NULL', null, false)
+            ->where('id !=', $customer_id)
+            ->group_start()
+                ->where('mobile', $mobile);
+
+        if (! empty($aadhaar_hash)) {
+            $query->or_where('aadhaar_hash', $aadhaar_hash);
+        }
+
+        $matches = $query->group_end()->get()->result_array();
+
+        $sanitized = array();
+        foreach ($matches as $match) {
+            $this->duplicate_logs->insert(array(
+                'customer_id' => $customer_id,
+                'matched_customer_id' => $match['id'],
+                'match_score' => (! empty($aadhaar_hash) && $match['aadhaar_hash'] === $aadhaar_hash) ? 100.00 : 60.00,
+            ));
+
+            unset($match['aadhaar_hash']);
+            $sanitized[] = $match;
+        }
+
+        return $sanitized;
     }
 
     /** POST /api/v1/customer/duplicate-check */
@@ -214,6 +267,46 @@ class Customer extends Api_Controller
         );
 
         return json_response(array('message' => 'Customers merged.'));
+    }
+
+    /**
+     * PUT /api/v1/customer/{id}/kyc-status
+     *
+     * Not a Laravel port — added for BRD §7 "KYC status: Pending / Verified /
+     * Rejected / Expired" (docs/BRD_COVERAGE_AUDIT.md). `customers.kyc_status`
+     * was set to PENDING at creation and then never transitioned anywhere in
+     * the codebase, and EXPIRED didn't exist as a reachable state at all.
+     * Restricted to the same approval-tier roles as loan/merge decisions,
+     * since KYC status drives loan eligibility.
+     */
+    public function update_kyc_status($id)
+    {
+        $this->require_auth();
+        $this->require_device_binding();
+        $this->require_role(array('BRANCH_MANAGER', 'REGIONAL_MANAGER', 'ADMIN'));
+
+        $customer = $this->customers->find($id);
+        if (! $customer) {
+            return json_error('Customer not found.', 404);
+        }
+
+        $data = $this->json_input();
+
+        if (empty($data['status']) || ! in_array($data['status'], array('VERIFIED', 'REJECTED', 'EXPIRED'), true)) {
+            return json_error('status is required and must be one of VERIFIED, REJECTED, EXPIRED.');
+        }
+        if (in_array($data['status'], array('REJECTED', 'EXPIRED'), true) && empty($data['reason'])) {
+            return json_error('reason is required when setting status to REJECTED or EXPIRED.');
+        }
+
+        $before = array('kyc_status' => $customer['kyc_status']);
+
+        $this->customers->update($id, array('kyc_status' => $data['status']));
+
+        $after = array('kyc_status' => $data['status'], 'reason' => $data['reason'] ?? null);
+        $this->audit_log('Customer', $id, 'KYC_STATUS_UPDATE', $before, $after);
+
+        return json_response(array('data' => $this->customers->find($id)));
     }
 
     /** POST /api/v1/customer/{id}/nominee */

@@ -10,6 +10,7 @@
         <option value="PENDING" <?php echo $filters['kyc_status'] === 'PENDING' ? 'selected' : ''; ?>>Pending</option>
         <option value="VERIFIED" <?php echo $filters['kyc_status'] === 'VERIFIED' ? 'selected' : ''; ?>>Verified</option>
         <option value="REJECTED" <?php echo $filters['kyc_status'] === 'REJECTED' ? 'selected' : ''; ?>>Rejected</option>
+        <option value="EXPIRED" <?php echo $filters['kyc_status'] === 'EXPIRED' ? 'selected' : ''; ?>>Expired</option>
     </select>
     <button type="submit" class="btn btn-outline-secondary">Filter</button>
 </form>

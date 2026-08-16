@@ -5,6 +5,13 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * Mirrors app/Http/Controllers/Api/V1/KycDocumentController.php. Same route
  * group as the rest of KYC (auth:sanctum + device.binding, no role
  * restriction on any of these three routes in routes/api.php).
+ *
+ * Role gates on store()/verify(), the rejection_reason field, and download()
+ * are NOT in the reviewed Laravel route/middleware set — they're added here
+ * to close BRD §7 "Documents securely stored & role-controlled" and
+ * "Rejected KYC captures a reason" (docs/BRD_COVERAGE_AUDIT.md), same as the
+ * other BRD-driven additions in this codebase that intentionally go beyond a
+ * literal 1:1 port.
  */
 class Kyc_document extends Api_Controller
 {
@@ -21,6 +28,7 @@ class Kyc_document extends Api_Controller
     {
         $this->require_auth();
         $this->require_device_binding();
+        $this->require_role(array('BRANCH_EXECUTIVE', 'BRANCH_MANAGER', 'ADMIN'));
 
         $data = $this->json_input();
 
@@ -100,6 +108,7 @@ class Kyc_document extends Api_Controller
     {
         $user = $this->require_auth();
         $this->require_device_binding();
+        $this->require_role(array('BRANCH_MANAGER', 'REGIONAL_MANAGER', 'ADMIN'));
 
         $document = $this->documents->find($id);
         if (! $document) {
@@ -111,10 +120,14 @@ class Kyc_document extends Api_Controller
         if (empty($data['status']) || ! in_array($data['status'], array('VERIFIED', 'REJECTED'), true)) {
             return json_error('status is required and must be VERIFIED or REJECTED.');
         }
+        if ($data['status'] === 'REJECTED' && empty($data['reason'])) {
+            return json_error('reason is required when rejecting a KYC document.');
+        }
 
         $this->documents->update($id, array(
             'status' => $data['status'],
             'verified_by' => $user['id'],
+            'rejection_reason' => $data['status'] === 'REJECTED' ? $data['reason'] : null,
         ));
 
         $updated = $this->documents->find($id);
@@ -123,5 +136,38 @@ class Kyc_document extends Api_Controller
         $this->audit_log('KycDocument', $id, $action, $document, $updated);
 
         return json_response(array('data' => $updated));
+    }
+
+    /**
+     * GET /api/v1/kyc/document/{id}/file
+     * Gated file-serving endpoint: KYC documents were previously only
+     * reachable by guessing the obfuscated filename under the uploads
+     * directory, with no auth/role check of its own (BRD §7 "Documents
+     * securely stored & role-controlled").
+     */
+    public function download($id)
+    {
+        $this->require_auth();
+        $this->require_device_binding();
+        $this->require_role(array('BRANCH_EXECUTIVE', 'BRANCH_MANAGER', 'REGIONAL_MANAGER', 'OPERATIONS', 'ADMIN'));
+
+        $document = $this->documents->find($id);
+        if (! $document) {
+            return json_error('KYC document not found.', 404);
+        }
+
+        $path = FCPATH . 'uploads/' . $document['file_ref'];
+        if (! is_file($path)) {
+            return json_error('File not found.', 404);
+        }
+
+        $this->audit_log('KycDocument', $id, 'KYC_DOCUMENT_VIEW', null, null);
+
+        $mime = function_exists('mime_content_type') ? mime_content_type($path) : 'application/octet-stream';
+        header('Content-Type: ' . $mime);
+        header('Content-Disposition: inline; filename="' . basename($path) . '"');
+        header('Content-Length: ' . filesize($path));
+        readfile($path);
+        exit;
     }
 }

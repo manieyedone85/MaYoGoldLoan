@@ -27,6 +27,13 @@ $route['admin/loans/create']['get'] = 'admin/loans/create_form';
 $route['admin/loans/create']['post'] = 'admin/loans/store';
 $route['admin/loans/(:num)']['get'] = 'admin/loans/show/$1';
 $route['admin/reports']['get'] = 'admin/reports/index';
+$route['admin/masters']['get'] = 'admin/masters/index';
+$route['admin/masters/branch/create']['post'] = 'admin/masters/store_branch';
+$route['admin/masters/branch/(:num)']['post'] = 'admin/masters/update_branch/$1';
+$route['admin/masters/loan-product/create']['post'] = 'admin/masters/store_loan_product';
+$route['admin/masters/loan-product/(:num)']['post'] = 'admin/masters/update_loan_product/$1';
+$route['admin/masters/role/create']['post'] = 'admin/masters/store_role';
+$route['admin/masters/role/(:num)']['post'] = 'admin/masters/update_role/$1';
 
 /*
 |--------------------------------------------------------------------------

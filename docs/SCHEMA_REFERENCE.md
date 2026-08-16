@@ -33,15 +33,21 @@ FORGOT_PASSWORD, MPIN_RESET), is_verified (bool), expires_at, timestamps
 id, user_id (FK users), device_id, device_model (nullable), push_token (nullable),
 is_active (bool), bound_at, timestamps (unique user_id+device_id)
 
-## user_biometric_refs
-id, user_id (FK users), type (FACE, FINGERPRINT), template_ref, timestamps
+## user_biometric_ref
+id, user_id (FK users), type (FACE, FINGERPRINT), template_ref, created_at only (no
+updated_at). Table name is singular in the live DB (doc previously said
+`user_biometric_refs`). Was completely unused until BRD §15 "optional biometric"
+login was added: `User_biometric_ref_model`, `Auth::enroll_biometric()` /
+`Auth::biometric_login()` (docs/BRD_COVERAGE_AUDIT.md)
 
 ## customers
 id, customer_code (unique, e.g. CUST00012345), name, mobile, email (nullable),
 dob (nullable date), gender (nullable), aadhaar_last4 (nullable, 4 chars),
 aadhaar_hash (nullable, SHA-256 — never store full Aadhaar), pan_number (nullable),
 branch_id (FK branches), registered_by (FK users, nullable), kyc_status (default
-PENDING; PENDING/VERIFIED/REJECTED), is_blacklisted (bool), timestamps, deleted_at
+PENDING; PENDING/VERIFIED/REJECTED/EXPIRED — plain VARCHAR(20), not a DB enum,
+so EXPIRED needs no migration; set via `PUT /api/v1/customer/{id}/kyc-status`,
+`Customer::update_kyc_status()`), is_blacklisted (bool), timestamps, deleted_at
 (soft delete)
 
 ## customer_addresses
@@ -86,7 +92,8 @@ timestamps
 ## kyc_documents
 id, customer_id (FK customers), document_type_id (FK kyc_document_types), file_ref,
 status (default PENDING; PENDING/VERIFIED/REJECTED), verified_by (FK users, nullable),
-timestamps
+rejection_reason (nullable — added by docs/migrations/2026_08_16_customer_kyc_fixes.sql,
+required by `Kyc_document::verify()` when status=REJECTED), timestamps
 
 ## jewellery_categories
 id, code (unique), name (Chain/Ring/Bangle/Necklace...), timestamps
@@ -108,6 +115,15 @@ gold_rate_id (FK gold_rates), applied_rate (decimal 10,2), eligible_percentage
 status (default EVALUATED; EVALUATED/PLEDGED/RELEASED/AUCTIONED), loan_id (nullable,
 set once loan created), timestamps
 
+## jewellery_valuation_history
+id, jewellery_item_id (FK jewellery_items), gold_rate_id (FK gold_rates),
+gross_weight (decimal 8,3), stone_weight (decimal 8,3), applied_rate (decimal 10,2),
+eligible_percentage (decimal 5,2), eligible_amount (decimal 12,2), evaluated_by (FK
+users), created_at only (no updated_at) — added by
+docs/migrations/2026_08_16_jewellery_valuation_history.sql. One row per valuation
+event; written by `Jewellery::evaluate()`/`Jewellery::re_evaluate()` and
+`admin/Loans::store()`, read via `GET /api/v1/jewellery/{id}/valuation-history`
+
 ## jewellery_images
 id, jewellery_item_id (FK jewellery_items), file_ref, timestamps
 
@@ -118,7 +134,10 @@ FLAT/REDUCING), tenure_months, processing_fee_pct (decimal 5,2, default 0), gst_
 timestamps
 
 ## loans
-id, loan_account_number (unique, e.g. LGH001000123), customer_id (FK customers),
+id, loan_account_number (unique, e.g. LGH001000123 — nullable: only assigned in
+Disbursement::disburse(), derived from `id`, not set at creation; see BRD §9
+"Unique Loan ID created after disbursement" in docs/BRD_COVERAGE_AUDIT.md and
+docs/migrations/2026_08_16_new_gold_loan_fixes.sql), customer_id (FK customers),
 branch_id (FK branches), loan_product_id (FK loan_products), eligible_amount (decimal
 12,2), sanctioned_amount (decimal 12,2), interest_rate_pct (decimal 5,2),
 processing_fee (decimal 10,2, default 0), gst_amount (decimal 10,2, default 0),
@@ -126,6 +145,13 @@ insurance_amount (decimal 10,2, default 0), net_disbursed_amount (nullable decim
 12,2), loan_date (date), due_date (date), status (default DRAFT — one of DRAFT,
 PENDING_APPROVAL, APPROVED, REJECTED, DISBURSED, ACTIVE, RENEWED, PART_PAID, SETTLED,
 NPA, AUCTION_ELIGIBLE, AUCTIONED, CLOSED), created_by (FK users), timestamps
+
+## loan_documents
+id, loan_id (FK loans), document_type (default AGREEMENT; AGREEMENT/SANCTION_LETTER/
+OTHER), file_ref, uploaded_by (FK users), timestamps — added by
+docs/migrations/2026_08_16_new_gold_loan_fixes.sql for BRD §9 "Loan agreement &
+documents stored"; written/read via Loan_document.php
+(`POST/GET /api/v1/loan/{id}/document`, `GET /api/v1/loan/document/{id}/file`)
 
 ## loan_charges
 id, loan_id (FK loans), charge_type (PROCESSING_FEE/GST/INSURANCE/LATE_FEE), amount
@@ -145,33 +171,51 @@ users), remarks (nullable), timestamps
 (Maker-checker rule: actioned_by must never equal loans.created_by)
 
 ## loan_disbursements
-id, loan_id (FK loans), mode (CASH/IMPS/RTGS/NEFT/UPI/BANK_TRANSFER), amount (decimal
+id, loan_id (FK loans), mode (FK disbursement_mode_master.id — NOT a free-text
+code; Disbursement::disburse() resolves the request's mode code to this id via
+Disbursement_mode_model::find_by_code() before insert), amount (decimal
 12,2), reference_number (nullable), status (default PENDING; PENDING/COMPLETED/FAILED),
 disbursed_by (FK users), timestamps
 (Cash disbursement cap: INR 20,000 hard limit — enforce in controller)
 
+## disbursement_mode_master
+id, code (unique; CASH/IMPS/RTGS/NEFT/UPI/BANK_TRANSFER), name, timestamps — the
+"configured payment modes" for disbursement (BRD §12, docs/BRD_COVERAGE_AUDIT.md)
+
 ## loan_renewals
 id, loan_id (FK loans), renewed_tenure_months, interest_paid (decimal 10,2),
-renewal_charges (decimal 10,2, default 0), new_due_date (date), processed_by (FK
+renewal_charges (decimal 10,2, default 0), new_due_date (date), previous_due_date
+(nullable date — added by docs/migrations/2026_08_16_renewal_topup_reload_fixes.sql
+for BRD §11 "Related transactions retain historical references"), processed_by (FK
 users), timestamps
 
 ## loan_topups
 id, loan_id (FK loans), eligible_topup_amount (decimal 12,2), approved_amount
-(nullable decimal 12,2), processing_fee (decimal 10,2, default 0), status (default
+(nullable decimal 12,2), previous_sanctioned_amount (nullable decimal 12,2 — added by
+docs/migrations/2026_08_16_renewal_topup_reload_fixes.sql, set at disburse() time),
+processing_fee (decimal 10,2, default 0), status (default
 PENDING; PENDING/APPROVED/DISBURSED/REJECTED), approved_by (FK users, nullable),
 timestamps
 
 ## interest_collections
-id, loan_id (FK loans), amount (decimal 10,2), mode (CASH/ONLINE), receipt_number
-(unique), collected_by (FK users), timestamps
+id, loan_id (FK loans), amount (decimal 10,2), mode (free-text VARCHAR — CASH/UPI/
+BANK_TRANSFER/CARD, per BRD §12 "Configured payment modes"; was CASH/ONLINE only),
+receipt_number (unique), idempotency_key (nullable, unique — added by
+docs/migrations/2026_08_16_security_audit_fixes.sql for BRD §15 "Financial APIs
+prevent duplicate submissions"), collected_by (FK users), timestamps
 
 ## loan_part_payments
 id, loan_id (FK loans), principal_amount (decimal 10,2, default 0), interest_amount
-(decimal 10,2, default 0), collected_by (FK users), timestamps
+(decimal 10,2, default 0), idempotency_key (nullable, unique — added by
+docs/migrations/2026_08_16_security_audit_fixes.sql, same rationale as
+interest_collections above), collected_by (FK users), timestamps
 
 ## loan_reloads
-id, loan_id (FK loans), excess_amount_eligible (decimal 12,2), reload_amount (decimal
-12,2), processed_by (FK users), timestamps
+id, loan_id (FK loans), excess_amount_eligible (decimal 12,2 — now recomputed
+server-side in Part_payment::reload(), not client-supplied), reload_amount (decimal
+12,2), previous_sanctioned_amount (nullable decimal 12,2 — added by
+docs/migrations/2026_08_16_renewal_topup_reload_fixes.sql), processed_by (FK users),
+timestamps
 
 ## loan_closures
 id, loan_id (FK loans), total_amount_collected (decimal 12,2), closure_date (date),

@@ -85,7 +85,12 @@ class Auth extends Api_Controller
         // Dispatch via the notification gateway (SMS/WhatsApp) with retry/backoff.
         // Notification_lib::send_otp($data['mobile'], $otp);
 
-        return json_response(array('message' => 'OTP sent.','otp' => $otp));
+        // BRD §15 "Secure login, OTP" (docs/BRD_COVERAGE_AUDIT.md) / critical
+        // issue #1: the OTP must never be echoed back in the API response --
+        // it has to reach the user only through the notification gateway
+        // above. A prior pass on this file claimed this was already fixed,
+        // but the leak was still live; removed for real this time.
+        return json_response(array('message' => 'OTP sent.'));
     }
 
     /** POST /api/v1/auth/otp/verify */
@@ -200,6 +205,138 @@ class Auth extends Api_Controller
         ));
 
         return json_response(array('message' => 'MPIN set.'));
+    }
+
+    /**
+     * POST /api/v1/auth/biometric/enroll
+     *
+     * Not a Laravel port -- added for BRD §15 "Secure login, OTP, optional
+     * biometric" (docs/BRD_COVERAGE_AUDIT.md). `user_biometric_ref` already
+     * existed in the live schema but nothing ever read or wrote to it, and
+     * there was no biometric login path at all -- only the customer-side KYC
+     * face-auth flow (Kyc_aadhaar::face_auth()) existed. `template_ref` is an
+     * opaque reference the device's secure hardware (Face ID / fingerprint
+     * sensor) generates on enrollment -- raw biometric data never reaches
+     * this endpoint or gets stored.
+     *
+     * Hardened after code review: template_ref now requires real entropy (a
+     * short guessable string like "1234" used to pass validation), and is
+     * bound to the enrolling device (device_id column added by
+     * docs/migrations/2026_08_16_biometric_login_hardening.sql) so it can't
+     * be replayed from a different device that happens to already be bound
+     * to this user.
+     */
+    public function enroll_biometric()
+    {
+        $user = $this->require_auth();
+        $this->require_device_binding();
+
+        $data = $this->json_input();
+
+        if (empty($data['type']) || ! in_array($data['type'], array('FACE', 'FINGERPRINT'), true)) {
+            return json_error('type is required and must be FACE or FINGERPRINT.');
+        }
+        if (empty($data['template_ref']) || strlen((string) $data['template_ref']) < 32 || strlen((string) $data['template_ref']) > 255) {
+            return json_error('template_ref is required and must be between 32 and 255 characters (a device-generated secure reference, not a short PIN-like value).');
+        }
+
+        $device_id = $this->input->get_request_header('X-Device-Id', TRUE);
+        if (empty($device_id)) {
+            return json_error('X-Device-Id header is required to enroll a biometric credential.');
+        }
+
+        $this->load->model('User_biometric_ref_model', 'biometric_refs');
+
+        $id = $this->biometric_refs->insert(array(
+            'user_id' => $user['id'],
+            'device_id' => $device_id,
+            'type' => $data['type'],
+            'template_ref' => $data['template_ref'],
+        ));
+
+        $this->audit_log('User', $user['id'], 'BIOMETRIC_ENROLL', null, array('type' => $data['type'], 'device_id' => $device_id));
+
+        return json_response(array('data' => $this->biometric_refs->find($id)), 201);
+    }
+
+    /**
+     * POST /api/v1/auth/biometric/login
+     *
+     * The actual biometric match happens in the device's secure hardware --
+     * this endpoint never receives raw biometric data, only the opaque
+     * template_ref the device was enrolled with (enroll_biometric() above).
+     * Mirrors the same "device attests, server checks the reference matches
+     * enrollment" pattern Kyc_aadhaar::face_auth() already uses for
+     * customer-side verification. Requires the device to already be bound to
+     * this user via a prior password/OTP login -- biometric login is a
+     * convenience shortcut for a known device, not an independent factor on
+     * its own.
+     *
+     * Hardened after code review: the match now also requires device_id to
+     * equal the device the credential was enrolled on (not just "any device
+     * bound to this user"), and repeated failed attempts are rate-limited --
+     * previously this was an unthrottled equality check against a
+     * client-chosen value with no minimum entropy enforced.
+     */
+    public function biometric_login()
+    {
+        $data = $this->json_input();
+
+        if (empty($data['mobile']) || empty($data['device_id']) || empty($data['type']) || empty($data['template_ref'])) {
+            return json_error('mobile, device_id, type, and template_ref are required.');
+        }
+        if (! in_array($data['type'], array('FACE', 'FINGERPRINT'), true)) {
+            return json_error('type must be FACE or FINGERPRINT.');
+        }
+
+        $user = $this->users->find_by_mobile($data['mobile']);
+        if (! $user || ! $user['is_active']) {
+            return json_error('Invalid credentials.', 401);
+        }
+
+        $this->load->model('User_biometric_ref_model', 'biometric_refs');
+
+        if ($this->biometric_refs->recent_failed_attempt_count($user['id'], date('Y-m-d H:i:s', time() - 900)) >= 5) {
+            return json_error('Too many failed biometric login attempts. Log in with password/OTP instead.', 429);
+        }
+
+        $bound = $this->device_bindings->first(array(
+            'user_id' => $user['id'],
+            'device_id' => $data['device_id'],
+            'is_active' => 1,
+        ));
+        if (! $bound) {
+            return json_error('This device is not bound to the account. Log in with password/OTP first.', 401);
+        }
+
+        $enrolled = $this->biometric_refs->find_for_login($user['id'], $data['type'], $data['template_ref'], $data['device_id']);
+        if (! $enrolled) {
+            $this->audit_log('User', $user['id'], 'BIOMETRIC_LOGIN_FAILED', null, array('device_id' => $data['device_id'], 'type' => $data['type']));
+
+            return json_error('Biometric not recognized. Log in with password/OTP.', 401);
+        }
+
+        $issued = $this->token_auth->issue($user['id'], 'mobile-app');
+        $this->users->update($user['id'], array('last_login_at' => date('Y-m-d H:i:s')));
+
+        $this->load->model('Role_model', 'roles');
+        $role = $this->roles->find($user['role_id']);
+
+        $this->audit_log('User', $user['id'], 'BIOMETRIC_LOGIN', null, array(
+            'role' => $role ? $role['code'] : null,
+            'device_id' => $data['device_id'],
+            'type' => $data['type'],
+        ));
+
+        return json_response(array(
+            'token' => $issued['token'],
+            'user' => array(
+                'id' => $user['id'],
+                'name' => $user['name'],
+                'role' => $role ? $role['code'] : null,
+                'branch_id' => $user['branch_id'],
+            ),
+        ));
     }
 
     private function bind_device($user_id, $device_id, array $extra = array())

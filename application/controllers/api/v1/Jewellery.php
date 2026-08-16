@@ -18,6 +18,7 @@ class Jewellery extends Api_Controller
         $this->load->model('Jewellery_category_model', 'jewellery_categories');
         $this->load->model('Gold_rate_model', 'gold_rates');
         $this->load->model('Customer_model', 'customers');
+        $this->load->model('Jewellery_valuation_history_model', 'valuation_history');
     }
 
     /** POST /api/v1/jewellery/evaluate  (role: APPRAISER) */
@@ -76,6 +77,17 @@ class Jewellery extends Api_Controller
             'status' => 'EVALUATED',
         ));
 
+        $this->valuation_history->insert(array(
+            'jewellery_item_id' => $id,
+            'gold_rate_id' => $goldRate['id'],
+            'gross_weight' => $grossWeight,
+            'stone_weight' => $stoneWeight,
+            'applied_rate' => $goldRate['rate_per_gram'],
+            'eligible_percentage' => $eligiblePercentage,
+            'eligible_amount' => $eligibleAmount,
+            'evaluated_by' => $this->user['id'],
+        ));
+
         $this->audit_log('JewelleryItem', $id, 'CREATE', null, array(
             'customer_id' => $data['customer_id'],
             'category_id' => $data['category_id'],
@@ -85,6 +97,108 @@ class Jewellery extends Api_Controller
         ));
 
         return json_response(array('data' => $this->jewellery_items->find($id)), 201);
+    }
+
+    /**
+     * POST /api/v1/jewellery/{id}/re-evaluate  (role: APPRAISER)
+     *
+     * Not a Laravel port -- added for BRD §8 "Valuation history retained"
+     * (docs/BRD_COVERAGE_AUDIT.md). There was previously no way to
+     * re-evaluate an already-evaluated item at all: `evaluate()` only ever
+     * inserts a new jewellery_items row. This re-prices an existing item
+     * against the current approved gold rate (optionally with corrected
+     * weights) and snapshots the new valuation into
+     * `jewellery_valuation_history` -- the prior valuation is already
+     * preserved as an earlier history row, so nothing is ever overwritten
+     * without a trace. Only allowed while the item is still EVALUATED or
+     * PLEDGED; once it's RELEASED/AUCTIONED its valuation is final.
+     */
+    public function re_evaluate($jewellery_item_id)
+    {
+        $this->require_auth();
+        $this->require_role(array('APPRAISER', 'ADMIN'));
+        $this->require_device_binding();
+
+        $item = $this->jewellery_items->find($jewellery_item_id);
+        if (! $item) {
+            return json_error('Jewellery item not found.', 404);
+        }
+        if (! in_array($item['status'], array('EVALUATED', 'PLEDGED'), true)) {
+            return json_error('Only EVALUATED or PLEDGED items can be re-evaluated.', 422);
+        }
+
+        $data = $this->json_input();
+
+        $grossWeight = isset($data['gross_weight']) ? (float) $data['gross_weight'] : (float) $item['gross_weight'];
+        if ($grossWeight < 0.001) {
+            return json_error('gross_weight must be at least 0.001.');
+        }
+        $stoneWeight = isset($data['stone_weight']) ? (float) $data['stone_weight'] : (float) $item['stone_weight'];
+        if ($stoneWeight < 0) {
+            return json_error('stone_weight must be a non-negative number.');
+        }
+        $purityKarat = ! empty($data['purity_karat']) ? $data['purity_karat'] : $item['purity_karat'];
+
+        $goldRate = $this->gold_rates->latest_approved($purityKarat);
+        if (! $goldRate) {
+            return json_error('No approved gold rate found for this karat.', 404);
+        }
+
+        $netWeight = $grossWeight - $stoneWeight;
+        $eligiblePercentage = (float) $goldRate['ltv_pct'];
+        $eligibleAmount = round($netWeight * (float) $goldRate['rate_per_gram'] * ($eligiblePercentage / 100), 2);
+
+        $before = array(
+            'gold_rate_id' => $item['gold_rate_id'],
+            'applied_rate' => $item['applied_rate'],
+            'eligible_percentage' => $item['eligible_percentage'],
+            'eligible_amount' => $item['eligible_amount'],
+        );
+
+        $this->jewellery_items->update($jewellery_item_id, array(
+            'gross_weight' => $grossWeight,
+            'stone_weight' => $stoneWeight,
+            'purity_karat' => $purityKarat,
+            'gold_rate_id' => $goldRate['id'],
+            'applied_rate' => $goldRate['rate_per_gram'],
+            'eligible_percentage' => $eligiblePercentage,
+            'eligible_amount' => $eligibleAmount,
+        ));
+
+        $this->valuation_history->insert(array(
+            'jewellery_item_id' => $jewellery_item_id,
+            'gold_rate_id' => $goldRate['id'],
+            'gross_weight' => $grossWeight,
+            'stone_weight' => $stoneWeight,
+            'applied_rate' => $goldRate['rate_per_gram'],
+            'eligible_percentage' => $eligiblePercentage,
+            'eligible_amount' => $eligibleAmount,
+            'evaluated_by' => $this->user['id'],
+        ));
+
+        $updated = $this->jewellery_items->find($jewellery_item_id);
+
+        $this->audit_log('JewelleryItem', $jewellery_item_id, 'RE_EVALUATE', $before, array(
+            'gold_rate_id' => $goldRate['id'],
+            'applied_rate' => $goldRate['rate_per_gram'],
+            'eligible_percentage' => $eligiblePercentage,
+            'eligible_amount' => $eligibleAmount,
+        ));
+
+        return json_response(array('data' => $updated));
+    }
+
+    /** GET /api/v1/jewellery/{id}/valuation-history */
+    public function valuation_history($jewellery_item_id)
+    {
+        $this->require_auth();
+
+        $item = $this->jewellery_items->find($jewellery_item_id);
+        if (! $item) {
+            return json_error('Jewellery item not found.', 404);
+        }
+
+        return json_response(array('data' => $this->valuation_history->for_item($jewellery_item_id)));
     }
 
     /** GET /api/v1/jewellery/rate/current */
@@ -229,6 +343,39 @@ class Jewellery extends Api_Controller
         }
 
         return json_response(array('barcode' => $item['barcode']));
+    }
+
+    /**
+     * GET /api/v1/jewellery/image/{id}/file
+     * Gated file-serving endpoint -- BRD §15 "Secure KYC / jewellery image
+     * access" (docs/BRD_COVERAGE_AUDIT.md). `upload_image()` above stored
+     * images under an obfuscated filename with no read-side gate at all;
+     * mirrors the same pattern as Kyc_document::download() and
+     * Loan_document::download().
+     */
+    public function download_image($jewellery_image_id)
+    {
+        $this->require_auth();
+        $this->require_role(array('APPRAISER', 'BRANCH_EXECUTIVE', 'BRANCH_MANAGER', 'REGIONAL_MANAGER', 'OPERATIONS', 'ADMIN'));
+
+        $image = $this->jewellery_images->find($jewellery_image_id);
+        if (! $image) {
+            return json_error('Jewellery image not found.', 404);
+        }
+
+        $path = FCPATH . 'uploads/' . $image['file_ref'];
+        if (! is_file($path)) {
+            return json_error('File not found.', 404);
+        }
+
+        $this->audit_log('JewelleryImage', $jewellery_image_id, 'JEWELLERY_IMAGE_VIEW', null, null);
+
+        $mime = function_exists('mime_content_type') ? mime_content_type($path) : 'application/octet-stream';
+        header('Content-Type: ' . $mime);
+        header('Content-Disposition: inline; filename="' . basename($path) . '"');
+        header('Content-Length: ' . filesize($path));
+        readfile($path);
+        exit;
     }
 
     private function _random_alnum($length)
