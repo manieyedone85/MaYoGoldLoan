@@ -9,5 +9,5 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  */
 class Customer_duplicate_log_model extends MY_Model
 {
-    protected $table = 'customer_duplicate_logs';
+    protected $table = 'customer_duplicate_log';
 }

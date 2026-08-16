@@ -11,7 +11,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  */
 class Sync_conflict_log_model extends MY_Model
 {
-    protected $table = 'sync_conflict_logs';
+    protected $table = 'sync_conflict_log';
 
     public function insert($data)
     {

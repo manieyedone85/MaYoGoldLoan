@@ -3,7 +3,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Loan_approval_limit_model extends MY_Model
 {
-    protected $table = 'loan_approval_limits';
+    protected $table = 'loan_approval_limit_master';
 
     public function for_role($role_id)
     {

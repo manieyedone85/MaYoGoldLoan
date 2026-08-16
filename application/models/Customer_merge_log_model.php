@@ -6,5 +6,5 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  */
 class Customer_merge_log_model extends MY_Model
 {
-    protected $table = 'customer_merge_logs';
+    protected $table = 'customer_merge_log';
 }

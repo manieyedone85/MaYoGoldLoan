@@ -53,7 +53,7 @@ class Jewellery extends Api_Controller
         $grossWeight = (float) $data['gross_weight'];
         $stoneWeight = (float) ($data['stone_weight'] ?? 0);
         $netWeight = $grossWeight - $stoneWeight;
-        $eligiblePercentage = 75.00; // pulled from loan_product config in a full implementation
+        $eligiblePercentage = (float) $goldRate['ltv_pct']; // approved alongside the gold rate, not hardcoded
         $eligibleAmount = round($netWeight * (float) $goldRate['rate_per_gram'] * ($eligiblePercentage / 100), 2);
 
         $id = $this->jewellery_items->insert(array(
@@ -63,7 +63,10 @@ class Jewellery extends Api_Controller
             'hallmark_flag' => ! empty($data['hallmark_flag']) ? 1 : 0,
             'gross_weight' => $grossWeight,
             'stone_weight' => $stoneWeight,
-            'net_weight' => $netWeight,
+            // net_weight is NOT inserted -- it's a MySQL generated column
+            // (gross_weight - stone_weight) on the live jewellery_items table;
+            // an explicit value here would error. $netWeight is still used
+            // in-memory for eligible_amount below.
             'purity_karat' => $data['purity_karat'],
             'gold_rate_id' => $goldRate['id'],
             'applied_rate' => $goldRate['rate_per_gram'],
@@ -120,9 +123,13 @@ class Jewellery extends Api_Controller
         if (empty($data['effective_date']) || strtotime($data['effective_date']) === false) {
             return json_error('effective_date is required and must be a valid date.');
         }
+        if (isset($data['ltv_pct']) && (! is_numeric($data['ltv_pct']) || (float) $data['ltv_pct'] <= 0 || (float) $data['ltv_pct'] > 100)) {
+            return json_error('ltv_pct must be a number between 0 and 100.');
+        }
 
         $id = $this->gold_rates->insert(array(
             'rate_per_gram' => $data['rate_per_gram'],
+            'ltv_pct' => isset($data['ltv_pct']) ? $data['ltv_pct'] : 75.00,
             'karat' => $data['karat'],
             'effective_date' => date('Y-m-d', strtotime($data['effective_date'])),
             'status' => 'PENDING_APPROVAL',

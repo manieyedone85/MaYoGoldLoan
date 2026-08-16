@@ -6,6 +6,7 @@ $route['api/v1/customer']['post'] = 'api/v1/customer/store';
 $route['api/v1/customer/search']['get'] = 'api/v1/customer/search';
 $route['api/v1/customer/duplicate-check']['post'] = 'api/v1/customer/duplicate_check';
 $route['api/v1/customer/(:num)']['get'] = 'api/v1/customer/show/$1';
+$route['api/v1/customer/(:num)/loans']['get'] = 'api/v1/customer/loans/$1';
 $route['api/v1/customer/(:num)/nominee']['post'] = 'api/v1/customer/add_nominee/$1';
 $route['api/v1/customer/(:num)/family-member']['post'] = 'api/v1/customer/add_family_member/$1';
 $route['api/v1/customer/(:num)/merge']['post'] = 'api/v1/customer/merge/$1';

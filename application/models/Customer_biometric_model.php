@@ -9,7 +9,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  */
 class Customer_biometric_model extends MY_Model
 {
-    protected $table = 'customer_biometrics';
+    protected $table = 'customer_biometric_ref';
 
     public function for_customer($customer_id)
     {

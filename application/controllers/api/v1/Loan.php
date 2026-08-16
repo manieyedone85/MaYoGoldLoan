@@ -14,8 +14,18 @@ class Loan extends Api_Controller
         $this->load->model('Loan_product_model', 'loan_products');
         $this->load->model('Loan_charge_model', 'loan_charges');
         $this->load->model('Jewellery_item_model', 'jewellery_items');
+        $this->load->model('Jewellery_image_model', 'jewellery_images');
         $this->load->model('Customer_model', 'customers');
         $this->load->model('Branch_model', 'branches');
+        $this->load->model('Loan_disbursement_model', 'loan_disbursements');
+        $this->load->model('Interest_collection_model', 'interest_collections');
+        $this->load->model('Loan_part_payment_model', 'loan_part_payments');
+        $this->load->model('Loan_approval_workflow_model', 'loan_approval_workflows');
+        $this->load->model('Loan_approval_log_model', 'loan_approval_logs');
+        $this->load->model('Loan_renewal_model', 'loan_renewals');
+        $this->load->model('Loan_topup_model', 'loan_topups');
+        $this->load->model('Loan_reload_model', 'loan_reloads');
+        $this->load->model('Loan_closure_model', 'loan_closures');
     }
 
     /** POST /api/v1/loan/calculate */
@@ -122,7 +132,121 @@ class Loan extends Api_Controller
         }
 
         $product = $this->loan_products->find($loan['loan_product_id']);
-        $months = (int) $product['tenure_months'];
+
+        return json_response(array('data' => $this->_build_emi_schedule($loan, $product)));
+    }
+
+    /**
+     * GET /api/v1/loan/{id}
+     * Full loan-detail bundle for the mandatory mobile-number-search scenario
+     * (BRD section 10, steps 4-11): loan summary with outstanding/EMI/tenure,
+     * only the jewellery pledged against THIS loan (with images), payment
+     * history, EMI schedule, a merged lifecycle timeline, and a first-pass
+     * eligible-actions flag set. Mirrors admin/Loans::show() but as JSON, and
+     * fills in what that view is still missing (outstanding amount, EMI,
+     * tenure, jewellery images/type/hallmark, part-payments, a unified
+     * timeline) rather than just porting its gaps.
+     */
+    public function show($loan_id)
+    {
+        $this->require_auth();
+        $this->require_device_binding();
+
+        $loan = $this->loans->find_with_relations($loan_id);
+        if (! $loan) {
+            return json_error('Loan not found.', 404);
+        }
+
+        $product = $this->loan_products->find($loan['loan_product_id']);
+        $emi_schedule = $this->_build_emi_schedule($loan, $product);
+        $emi_amount = $emi_schedule ? $emi_schedule[0]['interest_due'] : 0;
+
+        $jewellery_items = $this->jewellery_items->for_loan($loan_id);
+        $item_ids = array_column($jewellery_items, 'id');
+        $images_by_item = $this->jewellery_images->for_items($item_ids);
+        foreach ($jewellery_items as &$item) {
+            $item['images'] = $images_by_item[$item['id']] ?? array();
+        }
+        unset($item);
+
+        $disbursements = $this->loan_disbursements->all(array('loan_id' => $loan_id));
+        $interest_collections = $this->interest_collections->all(array('loan_id' => $loan_id));
+        $part_payments = $this->loan_part_payments->all(array('loan_id' => $loan_id));
+        $renewals = $this->loan_renewals->all(array('loan_id' => $loan_id));
+        $topups = $this->loan_topups->all(array('loan_id' => $loan_id));
+        $reloads = $this->loan_reloads->all(array('loan_id' => $loan_id));
+        $closures = $this->loan_closures->all(array('loan_id' => $loan_id));
+        $approval_logs = $this->loan_approval_logs->for_loan($loan_id);
+
+        $timeline = array();
+        $timeline[] = array('type' => 'LOAN_CREATED', 'at' => $loan['created_at'], 'summary' => 'Loan ' . $loan['loan_account_number'] . ' created.');
+        foreach ($approval_logs as $row) {
+            $timeline[] = array('type' => 'APPROVAL_' . $row['action'], 'at' => $row['created_at'], 'summary' => $row['stage'] . ': ' . $row['action']);
+        }
+        foreach ($disbursements as $row) {
+            $timeline[] = array('type' => 'DISBURSEMENT', 'at' => $row['created_at'], 'summary' => 'Disbursed ' . $row['amount']);
+        }
+        foreach ($interest_collections as $row) {
+            $timeline[] = array('type' => 'INTEREST_COLLECTED', 'at' => $row['created_at'], 'summary' => 'Interest collected ' . $row['amount']);
+        }
+        foreach ($part_payments as $row) {
+            $timeline[] = array('type' => 'PART_PAYMENT', 'at' => $row['created_at'], 'summary' => 'Part payment ' . ($row['principal_amount'] + $row['interest_amount']));
+        }
+        foreach ($renewals as $row) {
+            $timeline[] = array('type' => 'RENEWAL', 'at' => $row['created_at'], 'summary' => 'Renewed to ' . $row['new_due_date']);
+        }
+        foreach ($topups as $row) {
+            $timeline[] = array('type' => 'TOPUP', 'at' => $row['created_at'], 'summary' => 'Top-up ' . $row['status'] . ' for ' . $row['approved_amount']);
+        }
+        foreach ($reloads as $row) {
+            $timeline[] = array('type' => 'RELOAN', 'at' => $row['created_at'], 'summary' => 'Re-loan of ' . $row['reload_amount']);
+        }
+        foreach ($closures as $row) {
+            $timeline[] = array('type' => 'CLOSURE', 'at' => $row['created_at'], 'summary' => 'Settled, collected ' . $row['total_amount_collected']);
+        }
+        usort($timeline, function ($a, $b) {
+            return strcmp((string) $a['at'], (string) $b['at']);
+        });
+
+        $active_statuses = array('ACTIVE', 'PART_PAID');
+        $is_active = in_array($loan['status'], $active_statuses, true);
+
+        return json_response(array('data' => array(
+            'loan' => array_merge($loan, array(
+                // sanctioned_amount already carries the running principal balance --
+                // Part_payment/Topup mutate it directly, so it doubles as the
+                // current outstanding amount rather than a separately stored figure.
+                'outstanding_amount' => $loan['sanctioned_amount'],
+                'emi_amount' => $emi_amount,
+                'tenure_months' => $product ? (int) $product['tenure_months'] : null,
+            )),
+            'jewellery_items' => $jewellery_items,
+            'payments' => array(
+                'disbursements' => $disbursements,
+                'interest_collections' => $interest_collections,
+                'part_payments' => $part_payments,
+            ),
+            'emi_schedule' => $emi_schedule,
+            'timeline' => $timeline,
+            // First-pass, status-based only -- the dedicated eligibility
+            // endpoints (Renewal::eligibility(), Topup::eligibility(),
+            // Settlement::closure_statement()) remain the source of truth
+            // for the actual amounts before any of these actions are taken.
+            'eligible_actions' => array(
+                'payment' => $is_active,
+                'renew' => $is_active,
+                'topup' => $is_active,
+                'reloan' => $is_active,
+                'foreclosure' => $is_active,
+                'print' => true,
+                'download' => true,
+            ),
+        )));
+    }
+
+    private function _build_emi_schedule($loan, $product)
+    {
+        $months = $product ? (int) $product['tenure_months'] : 0;
         $monthlyInterest = round(((float) $loan['sanctioned_amount'] * (float) $loan['interest_rate_pct'] / 100) / 12, 2);
 
         $schedule = array();
@@ -134,7 +258,7 @@ class Loan extends Api_Controller
             );
         }
 
-        return json_response(array('data' => $schedule));
+        return $schedule;
     }
 
     /** @return string|null error message, or null if valid */

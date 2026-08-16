@@ -45,18 +45,9 @@ class Jewellery_item_model extends MY_Model
      * Settlement::settle(). Do not remove; merge on conflict.
      */
 
-    /** All jewellery items pledged against a loan (used for topup re-valuation). */
+    /** All jewellery items pledged against a loan (used for topup re-valuation and settlement). */
     public function for_loan($loan_id)
     {
         return $this->all(array('loan_id' => $loan_id));
-    }
-
-    /** Bulk status update for every item pledged against a loan (settlement -> RELEASED). */
-    public function update_status_for_loan($loan_id, $status)
-    {
-        return $this->db->where('loan_id', $loan_id)->update($this->table, array(
-            'status' => $status,
-            'updated_at' => date('Y-m-d H:i:s'),
-        ));
     }
 }

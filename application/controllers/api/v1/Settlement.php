@@ -15,7 +15,6 @@ class Settlement extends Api_Controller
         $this->load->model('Loan_model', 'loans');
         $this->load->model('Loan_closure_model', 'closures');
         $this->load->model('Interest_collection_model', 'collections');
-        $this->load->model('Jewellery_item_model', 'jewellery_items');
     }
 
     /** GET /api/v1/loan/{loan}/closure-statement */
@@ -64,8 +63,13 @@ class Settlement extends Api_Controller
             'closed_by' => $user['id'],
         ));
 
+        // Settlement only authorizes release -- it must never flip jewellery
+        // straight to RELEASED itself. Gold_release::complete() is the sole
+        // place that changes a jewellery_item's status to RELEASED, and it
+        // now refuses to do so unless this loan's status is SETTLED/CLOSED
+        // (see Gold_release.php), so physical release still requires the
+        // full id-proof/signature/photo checklist on top of this.
         $this->loans->update($loan['id'], array('status' => 'SETTLED'));
-        $this->jewellery_items->update_status_for_loan($loan['id'], 'RELEASED');
 
         $this->audit_log('Loan', $loan['id'], 'SETTLE',
             array('status' => $loan['status'], 'sanctioned_amount' => $loan['sanctioned_amount']),

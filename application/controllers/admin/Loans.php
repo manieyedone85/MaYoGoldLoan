@@ -237,7 +237,7 @@ class Loans extends Admin_Controller
             $gross_weight = (float) $row['gross_weight'];
             $stone_weight = isset($row['stone_weight']) && $row['stone_weight'] !== '' ? (float) $row['stone_weight'] : 0.0;
             $net_weight = $gross_weight - $stone_weight;
-            $eligible_percentage = 75.00;
+            $eligible_percentage = (float) $gold_rate['ltv_pct']; // approved alongside the gold rate, not hardcoded
             $item_eligible_amount = round($net_weight * (float) $gold_rate['rate_per_gram'] * ($eligible_percentage / 100), 2);
 
             $item_id = $this->jewellery_items->insert(array(
@@ -247,7 +247,9 @@ class Loans extends Admin_Controller
                 'hallmark_flag' => ! empty($row['hallmark_flag']) ? 1 : 0,
                 'gross_weight' => $gross_weight,
                 'stone_weight' => $stone_weight,
-                'net_weight' => $net_weight,
+                // net_weight is NOT inserted -- it's a MySQL generated column
+                // (gross_weight - stone_weight) on the live jewellery_items
+                // table; an explicit value here would error.
                 'purity_karat' => $purity_karat,
                 'gold_rate_id' => $gold_rate['id'],
                 'applied_rate' => $gold_rate['rate_per_gram'],

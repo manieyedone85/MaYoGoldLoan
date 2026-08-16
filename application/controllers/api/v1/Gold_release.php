@@ -92,6 +92,14 @@ class Gold_release extends Api_Controller
             return json_error('Gold release not found.', 404);
         }
 
+        // Release is only authorized once the loan itself has been settled/
+        // closed -- this is the enforcement point for "jewellery release
+        // shall be allowed only after authorized closure/settlement".
+        $loan = $this->loans->find($release['loan_id']);
+        if (! $loan || ! in_array($loan['status'], array('SETTLED', 'CLOSED'), true)) {
+            return json_error('This loan has not been settled/closed yet -- jewellery cannot be released.', 409);
+        }
+
         if (! $this->gold_releases->is_ready_for_release($release)) {
             return json_error('ID proof, signature, and photo must all be captured first.');
         }

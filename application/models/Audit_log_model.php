@@ -4,9 +4,6 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 /**
  * audit_logs.before_value / after_value are JSON columns — encode with
  * json_encode() before insert, decode with json_decode($x, true) after read.
- * Not currently written to by any ported controller in this module group
- * (no Laravel controller in scope calls AuditLog::create() directly), but
- * kept available for other modules / future use per SCHEMA_REFERENCE.md.
  */
 class Audit_log_model extends MY_Model
 {

@@ -255,6 +255,28 @@ class Customer extends Api_Controller
         return json_response(array('data' => $nominee), 201);
     }
 
+    /**
+     * GET /api/v1/customer/{id}/loans
+     * All active and closed loans for a customer -- step 3 of the mandatory
+     * mobile-number-search scenario (BRD section 10). Mirrors what
+     * admin/Customers::show() already does for the web panel, exposed here
+     * so the mobile app can do the same search-by-mobile -> loan list flow.
+     */
+    public function loans($id)
+    {
+        $this->require_auth();
+        $this->require_device_binding();
+
+        $customer = $this->customers->find($id);
+        if (! $customer) {
+            return json_error('Customer not found.', 404);
+        }
+
+        $this->load->model('Loan_model', 'loans');
+
+        return json_response(array('data' => $this->loans->with_relations(array('loans.customer_id' => $id))));
+    }
+
     /** POST /api/v1/customer/{id}/family-member */
     public function add_family_member($id)
     {

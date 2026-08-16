@@ -92,8 +92,11 @@ timestamps
 id, code (unique), name (Chain/Ring/Bangle/Necklace...), timestamps
 
 ## gold_rates
-id, rate_per_gram (decimal 10,2), karat (e.g. "22K", "18K"), effective_date,
-status (default PENDING_APPROVAL; PENDING_APPROVAL/APPROVED), proposed_by (FK users),
+id, rate_per_gram (decimal 10,2), ltv_pct (decimal 5,2, default 75.00 — the
+loan-to-value percentage approved alongside the rate; read by
+Jewellery::evaluate() and admin/Loans::store() instead of a hardcoded
+literal), karat (e.g. "22K", "18K"), effective_date, status (default
+PENDING_APPROVAL; PENDING_APPROVAL/APPROVED), proposed_by (FK users),
 approved_by (FK users, nullable), approved_at (nullable), timestamps
 
 ## jewellery_items

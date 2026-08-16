@@ -14,6 +14,7 @@ $route['api/v1/loan/calculate']['post'] = 'api/v1/loan/calculate';
 $route['api/v1/loan']['post'] = 'api/v1/loan/store';
 $route['api/v1/loan/pending-approval']['get'] = 'api/v1/loan_approval/pending';
 $route['api/v1/loan/(:num)/emi-schedule']['get'] = 'api/v1/loan/emi_schedule/$1';
+$route['api/v1/loan/(:num)']['get'] = 'api/v1/loan/show/$1';
 
 // ---------------- Loan Approval (Maker-Checker) ----------------
 $route['api/v1/loan/(:num)/submit-for-approval']['post'] = 'api/v1/loan_approval/submit/$1';
