@@ -50,4 +50,25 @@ class Jewellery_item_model extends MY_Model
     {
         return $this->all(array('loan_id' => $loan_id));
     }
+
+    /** EVALUATED, unpledged items owned by a customer -- candidates for Topup::add_jewellery(). */
+    public function evaluated_unpledged_for_customer($customer_id)
+    {
+        return $this->all(array('customer_id' => $customer_id, 'status' => 'EVALUATED'));
+    }
+
+    /** Items joined with customer name and category name, optionally filtered -- for the admin Jewellery Items list. */
+    public function with_relations($where = array(), $limit = 50)
+    {
+        $query = $this->db->select('jewellery_items.*, customers.name AS customer_name, jewellery_category_master.name AS category_name')
+            ->from('jewellery_items')
+            ->join('customers', 'customers.id = jewellery_items.customer_id', 'left')
+            ->join('jewellery_category_master', 'jewellery_category_master.id = jewellery_items.category_id', 'left');
+
+        if (! empty($where)) {
+            $query->where($where);
+        }
+
+        return $query->order_by('jewellery_items.id', 'DESC')->limit($limit)->get()->result_array();
+    }
 }

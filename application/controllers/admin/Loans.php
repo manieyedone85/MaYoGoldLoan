@@ -33,6 +33,7 @@ class Loans extends Admin_Controller
         $this->load->model('Interest_collection_model', 'interest_collections');
         $this->load->model('Customer_address_model', 'customer_addresses');
         $this->load->model('Jewellery_valuation_history_model', 'valuation_history');
+        $this->load->model('Loan_document_model', 'loan_documents');
     }
 
     /** GET /admin/loans */
@@ -78,12 +79,146 @@ class Loans extends Admin_Controller
             'interest_collections' => $this->interest_collections->all(array('loan_id' => $id)),
             'approval_workflow' => $this->loan_approval_workflows->for_loan($id),
             'approval_logs' => $this->loan_approval_logs->for_loan($id),
+            'documents' => $this->loan_documents->for_loan($id),
+            'can_upload_document' => in_array($this->user['role_code'], array('BRANCH_EXECUTIVE', 'BRANCH_MANAGER'), true),
         ));
     }
 
-    /** GET /admin/loans/create */
+    /**
+     * GET /admin/loans/(:num)/receipt
+     * Printable loan/pledge receipt -- the customer's copy of what was
+     * pledged and sanctioned at loan creation. Not a Laravel port; added for
+     * the BRD audit's "jewellery receipt" gap (docs/BRD_COVERAGE_AUDIT.md
+     * §10 "Show loan agreement, KYC refs, jewellery receipt, documents").
+     */
+    public function receipt($id)
+    {
+        $loan = $this->loans->find_with_relations($id);
+        if (! $loan) {
+            show_404();
+
+            return;
+        }
+
+        $this->render('loan_receipt', array(
+            'page_title' => 'Pledge Receipt — ' . ($loan['loan_account_number'] ?? 'Loan #' . $id),
+            'loan' => $loan,
+            'items' => $this->jewellery_items->with_relations(array('jewellery_items.loan_id' => $id), 100),
+            'address' => $this->customer_addresses->first(array('customer_id' => $loan['customer_id'])),
+            'charges' => $this->loan_charges->all(array('loan_id' => $id)),
+        ));
+    }
+
+    /**
+     * POST /admin/loans/(:num)/document
+     * Ports application/controllers/api/v1/Loan_document.php::store() --
+     * surfaced here (not a standalone module) since it's always used in the
+     * context of one loan already being viewed, and this is what
+     * Disbursement::disburse() checks for before allowing disbursement.
+     */
+    public function upload_document($id)
+    {
+        if (! $this->require_admin_role(array('BRANCH_EXECUTIVE', 'BRANCH_MANAGER'))) {
+            return;
+        }
+
+        $loan = $this->loans->find($id);
+        if (! $loan) {
+            show_404();
+
+            return;
+        }
+
+        $document_type = trim((string) $this->input->post('document_type')) ?: 'AGREEMENT';
+        if (! in_array($document_type, array('AGREEMENT', 'SANCTION_LETTER', 'OTHER'), true)) {
+            return $this->_fail_document($id, 'Document type must be one of AGREEMENT, SANCTION_LETTER, OTHER.');
+        }
+
+        if (empty($_FILES['file']) || empty($_FILES['file']['name'])) {
+            return $this->_fail_document($id, 'A file is required.');
+        }
+        if ($_FILES['file']['size'] > 5120 * 1024) {
+            return $this->_fail_document($id, 'File must not be greater than 5120 kilobytes.');
+        }
+
+        $upload_dir = FCPATH . 'uploads/loan-documents';
+        if (! is_dir($upload_dir)) {
+            mkdir($upload_dir, 0775, true);
+        }
+
+        $this->load->library('upload', array(
+            'upload_path' => $upload_dir,
+            'allowed_types' => 'pdf|jpg|jpeg|png',
+            'max_size' => 5120,
+            'encrypt_name' => true,
+        ));
+
+        if (! $this->upload->do_upload('file')) {
+            return $this->_fail_document($id, $this->upload->display_errors('', ''));
+        }
+
+        $uploaded = $this->upload->data();
+        $file_ref = 'loan-documents/' . $uploaded['file_name'];
+
+        $document_id = $this->loan_documents->insert(array(
+            'loan_id' => $id,
+            'document_type' => $document_type,
+            'file_ref' => $file_ref,
+            'uploaded_by' => $this->user['id'],
+        ));
+
+        $this->audit_log('Loan', $id, 'LOAN_DOCUMENT_UPLOAD', null, $this->loan_documents->find($document_id));
+
+        $this->session->set_flashdata('status', 'Document uploaded.');
+        redirect('admin/loans/' . $id);
+    }
+
+    /** GET /admin/loans/document/(:num) -- gated inline file view */
+    public function download_document($document_id)
+    {
+        $document = $this->loan_documents->find($document_id);
+        if (! $document) {
+            show_404();
+
+            return;
+        }
+
+        $path = FCPATH . 'uploads/' . $document['file_ref'];
+        if (! is_file($path)) {
+            show_404();
+
+            return;
+        }
+
+        $this->audit_log('Loan', $document['loan_id'], 'LOAN_DOCUMENT_VIEW', null, null);
+
+        $mime = function_exists('mime_content_type') ? mime_content_type($path) : 'application/octet-stream';
+        header('Content-Type: ' . $mime);
+        header('Content-Disposition: inline; filename="' . basename($path) . '"');
+        header('Content-Length: ' . filesize($path));
+        readfile($path);
+        exit;
+    }
+
+    private function _fail_document($loan_id, $message)
+    {
+        $this->session->set_flashdata('error', $message);
+        redirect('admin/loans/' . $loan_id);
+    }
+
+    /**
+     * GET /admin/loans/create -- restricted: this path bypasses the normal
+     * Appraiser -> Manager -> Regional Manager maker-checker workflow (see
+     * store() below), so now that every staff role can log into the admin
+     * panel, it must stay ADMIN/OPERATIONS only rather than becoming a field
+     * role's back door around approval.
+     */
     public function create_form()
     {
+        if (! $this->require_admin_role(array('OPERATIONS'))) {
+            return;
+        }
+
         $this->render('loans_create', array(
             'page_title' => 'New Loan',
             'branches' => $this->branches->all(array(), 'name ASC'),
@@ -100,6 +235,10 @@ class Loans extends Admin_Controller
      */
     public function store()
     {
+        if (! $this->require_admin_role(array('OPERATIONS'))) {
+            return;
+        }
+
         $customer_mode = $this->input->post('customer_mode') === 'new' ? 'new' : 'existing';
         $branch_id = (string) $this->input->post('branch_id');
         $loan_product_id = (string) $this->input->post('loan_product_id');

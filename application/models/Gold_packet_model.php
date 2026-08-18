@@ -26,4 +26,18 @@ class Gold_packet_model extends MY_Model
             ->get()
             ->result_array();
     }
+
+    /** Packets joined with jewellery barcode and vault/branch names -- for the admin Inventory list. */
+    public function with_relations($limit = 100)
+    {
+        return $this->db->select('gold_packets.*, jewellery_items.barcode, vaults.name AS vault_name, branches.name AS branch_name')
+            ->from('gold_packets')
+            ->join('jewellery_items', 'jewellery_items.id = gold_packets.jewellery_item_id', 'left')
+            ->join('vaults', 'vaults.id = gold_packets.vault_id', 'left')
+            ->join('branches', 'branches.id = vaults.branch_id', 'left')
+            ->order_by('gold_packets.id', 'DESC')
+            ->limit($limit)
+            ->get()
+            ->result_array();
+    }
 }

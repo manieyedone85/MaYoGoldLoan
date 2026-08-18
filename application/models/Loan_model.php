@@ -46,6 +46,33 @@ class Loan_model extends MY_Model
         return $query->get()->result_array();
     }
 
+    /**
+     * Loan lookup shared by the admin panel's action screens (Interest
+     * Collections, Part Payments, Top-ups, Renewals, Settlements) --
+     * matches by loan account number or the owning customer's mobile, same
+     * "search loan by mobile number" entry point BRD §10 describes.
+     */
+    public function search_by_account_or_mobile($query, $limit = 20)
+    {
+        $query = trim((string) $query);
+        if ($query === '') {
+            return array();
+        }
+
+        return $this->db->select('loans.*, customers.name AS customer_name, customers.mobile AS customer_mobile, branches.name AS branch_name')
+            ->from('loans')
+            ->join('customers', 'customers.id = loans.customer_id', 'left')
+            ->join('branches', 'branches.id = loans.branch_id', 'left')
+            ->group_start()
+                ->like('loans.loan_account_number', $query)
+                ->or_like('customers.mobile', $query)
+            ->group_end()
+            ->order_by('loans.id', 'DESC')
+            ->limit($limit)
+            ->get()
+            ->result_array();
+    }
+
     public function recent_with_relations($limit = 8)
     {
         return $this->with_relations(array(), 'loans.id DESC', $limit);

@@ -16,4 +16,19 @@ class Loan_topup_model extends MY_Model
             ->get()
             ->row_array();
     }
+
+    /** Top-up history joined with loan/customer, optionally filtered by status -- for the admin Top-ups list. */
+    public function with_relations($status = null, $limit = 50)
+    {
+        $query = $this->db->select('loan_topups.*, loans.loan_account_number, customers.name AS customer_name')
+            ->from('loan_topups')
+            ->join('loans', 'loans.id = loan_topups.loan_id', 'left')
+            ->join('customers', 'customers.id = loans.customer_id', 'left');
+
+        if ($status !== null) {
+            $query->where('loan_topups.status', $status);
+        }
+
+        return $query->order_by('loan_topups.id', 'DESC')->limit($limit)->get()->result_array();
+    }
 }

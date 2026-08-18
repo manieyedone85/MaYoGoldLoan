@@ -1,4 +1,10 @@
 <a href="<?php echo base_url('admin/loans'); ?>" class="btn btn-sm btn-outline-secondary mb-3"><i class="bi bi-arrow-left"></i> Back to Loans</a>
+<a href="<?php echo base_url('admin/loans/' . $loan['id'] . '/receipt'); ?>" class="btn btn-sm btn-outline-dark mb-3" target="_blank"><i class="bi bi-receipt"></i> Pledge Receipt</a>
+
+<?php $CI =& get_instance(); $error = $CI->session->flashdata('error'); ?>
+<?php if (! empty($error)): ?>
+    <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
+<?php endif; ?>
 
 <div class="row g-3">
     <div class="col-md-8">
@@ -64,7 +70,7 @@
             </div>
         </div>
 
-        <div class="card border-0 shadow-sm">
+        <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white fw-semibold">Interest Collections</div>
             <div class="table-responsive">
                 <table class="table table-sm mb-0">
@@ -82,6 +88,41 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-semibold">Documents</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>Type</th><th>Uploaded</th><th></th></tr></thead>
+                    <tbody>
+                        <?php if (empty($documents)): ?>
+                            <tr><td colspan="3" class="text-center text-muted py-3">No documents uploaded. An AGREEMENT document is required before disbursement.</td></tr>
+                        <?php else: foreach ($documents as $doc): ?>
+                            <tr>
+                                <td><span class="badge bg-secondary"><?php echo htmlspecialchars($doc['document_type']); ?></span></td>
+                                <td><?php echo htmlspecialchars(date('d-M-Y', strtotime($doc['created_at']))); ?></td>
+                                <td><a href="<?php echo base_url('admin/loans/document/' . $doc['id']); ?>" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a></td>
+                            </tr>
+                        <?php endforeach; endif; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php if ($can_upload_document): ?>
+            <div class="card-footer bg-white">
+                <form method="POST" action="<?php echo base_url('admin/loans/' . $loan['id'] . '/document'); ?>" enctype="multipart/form-data" class="row g-2">
+                    <div class="col-md-4">
+                        <select name="document_type" class="form-select form-select-sm">
+                            <option value="AGREEMENT">Agreement</option>
+                            <option value="SANCTION_LETTER">Sanction Letter</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6"><input type="file" name="file" class="form-control form-control-sm" accept=".pdf,.jpg,.jpeg,.png" required></div>
+                    <div class="col-md-2"><button type="submit" class="btn btn-outline-dark btn-sm w-100">Upload</button></div>
+                </form>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 

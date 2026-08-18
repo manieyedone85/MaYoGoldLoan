@@ -17,6 +17,9 @@ class Customers extends Admin_Controller
         parent::__construct();
         $this->load->model('Customer_model', 'customers');
         $this->load->model('Loan_model', 'loans');
+        $this->load->model('Kyc_document_model', 'kyc_documents');
+        $this->load->model('Kyc_aadhaar_verification_model', 'aadhaar_verifications');
+        $this->load->model('Kyc_pan_verification_model', 'pan_verifications');
     }
 
     /** GET /admin/customers */
@@ -53,12 +56,19 @@ class Customers extends Admin_Controller
             'page_title' => $customer['name'] . ' (' . $customer['customer_code'] . ')',
             'customer' => $customer,
             'loans' => $loans,
+            'kyc_documents' => $this->kyc_documents->for_customer($id),
+            'aadhaar_verifications' => $this->aadhaar_verifications->for_customer($id),
+            'pan_verifications' => $this->pan_verifications->for_customer($id),
         ));
     }
 
-    /** POST /admin/customers/(:num)/blacklist */
+    /** POST /admin/customers/(:num)/blacklist -- restricted: blacklisting affects a customer's ability to borrow anywhere, not a front-desk action. */
     public function toggle_blacklist($id)
     {
+        if (! $this->require_admin_role(array('BRANCH_MANAGER', 'REGIONAL_MANAGER', 'OPERATIONS'))) {
+            return;
+        }
+
         $customer = $this->customers->find($id);
 
         if (! $customer) {

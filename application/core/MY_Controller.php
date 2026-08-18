@@ -139,12 +139,23 @@ class Api_Controller extends CI_Controller
 
 /**
  * Base controller for every admin panel controller (controllers/admin/*).
- * Mirrors the Laravel admin panel's session `auth` + `role:ADMIN,OPERATIONS`
- * middleware. Views are loaded through render() so every page shares the
- * same Bootstrap layout, current user, and flash message handling.
+ * Session-authenticated; open to every staff role (everything except the
+ * mobile-only CUSTOMER role) -- see ADMIN_ELIGIBLE_ROLES. Individual
+ * controllers/methods further restrict via require_admin_role() using the
+ * same role lists the api/v1 controllers already enforce, so a given screen
+ * or action is exposed to exactly the roles the mobile API already trusts
+ * with it. ADMIN always has access to everything. Views are loaded through
+ * render() so every page shares the same Bootstrap layout, current user, and
+ * flash message handling.
  */
 class Admin_Controller extends CI_Controller
 {
+    /** Every role code except CUSTOMER (docs/SCHEMA_REFERENCE.md) -- CUSTOMER is mobile-app-only. */
+    const ADMIN_ELIGIBLE_ROLES = array(
+        'BRANCH_EXECUTIVE', 'APPRAISER', 'CASHIER', 'BRANCH_MANAGER',
+        'REGIONAL_MANAGER', 'OPERATIONS', 'FINANCE', 'AUDITOR', 'ADMIN',
+    );
+
     protected $user;
 
     public function __construct()
@@ -170,7 +181,7 @@ class Admin_Controller extends CI_Controller
         $user = $this->users->find($user_id);
         $role = $user ? $this->roles->find($user['role_id']) : null;
 
-        if (! $user || ! $user['is_active'] || ! $role || ! in_array($role['code'], array('ADMIN', 'OPERATIONS'), true)) {
+        if (! $user || ! $user['is_active'] || ! $role || ! in_array($role['code'], self::ADMIN_ELIGIBLE_ROLES, true)) {
             $this->session->sess_destroy();
             redirect('admin/login');
 
@@ -179,6 +190,52 @@ class Admin_Controller extends CI_Controller
 
         $this->user = $user;
         $this->user['role_name'] = $role['name'];
+        $this->user['role_code'] = $role['code'];
+    }
+
+    /**
+     * Session-based sibling of Api_Controller::require_role(): call from a
+     * controller method (after the constructor has already run
+     * require_admin_session()) to further restrict that specific
+     * screen/action to a subset of ADMIN_ELIGIBLE_ROLES. ADMIN always
+     * passes. On failure, flashes an error and redirects to the dashboard
+     * rather than exiting, since there's no JSON response to return here --
+     * callers should `return;` immediately after calling this.
+     */
+    protected function require_admin_role(array $role_codes)
+    {
+        $role_code = isset($this->user['role_code']) ? $this->user['role_code'] : null;
+
+        if ($role_code === 'ADMIN') {
+            return true;
+        }
+
+        if (! in_array($role_code, $role_codes, true)) {
+            $this->session->set_flashdata('error', 'You do not have permission to access that.');
+            redirect('admin/dashboard');
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /** Session-based sibling of Api_Controller::audit_log() -- see that method's docblock. */
+    protected function audit_log($entity_type, $entity_id, $action, $before = null, $after = null)
+    {
+        try {
+            $this->load->model('Audit_log_model', 'audit_logs');
+            $this->audit_logs->insert(array(
+                'entity_type' => $entity_type,
+                'entity_id' => $entity_id,
+                'action' => $action,
+                'before_value' => $before,
+                'after_value' => $after,
+                'actor_id' => isset($this->user['id']) ? $this->user['id'] : null,
+            ));
+        } catch (Exception $e) {
+            log_message('error', 'audit_log failed for ' . $entity_type . '#' . $entity_id . '/' . $action . ': ' . $e->getMessage());
+        }
     }
 
     /**

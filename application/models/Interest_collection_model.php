@@ -11,4 +11,17 @@ class Interest_collection_model extends MY_Model
 
         return (float) ($row['amount'] ?? 0);
     }
+
+    /** Collection history joined with loan/customer, newest first -- for the admin Interest Collections list. */
+    public function with_relations($limit = 50)
+    {
+        return $this->db->select('interest_collections.*, loans.loan_account_number, customers.name AS customer_name')
+            ->from('interest_collections')
+            ->join('loans', 'loans.id = interest_collections.loan_id', 'left')
+            ->join('customers', 'customers.id = loans.customer_id', 'left')
+            ->order_by('interest_collections.id', 'DESC')
+            ->limit($limit)
+            ->get()
+            ->result_array();
+    }
 }

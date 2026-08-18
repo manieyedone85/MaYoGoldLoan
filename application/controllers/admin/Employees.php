@@ -19,6 +19,11 @@ class Employees extends Admin_Controller
         // Admin_Controller already loads User_model as $this->users and
         // Role_model as $this->roles.
         $this->load->model('Branch_model', 'branches');
+
+        // Staff/user management stays back-office only, now that login is
+        // open to every role -- a field role must not be able to create or
+        // reactivate other logins.
+        $this->require_admin_role(array('OPERATIONS'));
     }
 
     /** GET /admin/employees */

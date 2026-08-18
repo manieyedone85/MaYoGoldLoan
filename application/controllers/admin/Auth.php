@@ -4,7 +4,8 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 /**
  * Session-based admin login/logout. Deliberately extends CI_Controller
  * (not Admin_Controller) since the login page itself must be reachable
- * without a session. Access is restricted to ADMIN/OPERATIONS roles,
+ * without a session. Access is open to every staff role (everything except
+ * the mobile-only CUSTOMER role) -- see Admin_Controller::ADMIN_ELIGIBLE_ROLES,
  * checked both here and in every Admin_Controller-based page.
  */
 class Auth extends CI_Controller
@@ -58,7 +59,7 @@ class Auth extends CI_Controller
 
         $role = $this->roles->find($role_id);
 
-        if (! $role || ! in_array($role['code'], array('ADMIN', 'OPERATIONS'), true)) {
+        if (! $role || ! in_array($role['code'], Admin_Controller::ADMIN_ELIGIBLE_ROLES, true)) {
             $this->session->set_flashdata('error', 'You do not have access to the admin panel.');
             redirect('admin/login');
 
