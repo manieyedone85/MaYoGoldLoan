@@ -17,18 +17,47 @@ class Loan_topup_model extends MY_Model
             ->row_array();
     }
 
-    /** Top-up history joined with loan/customer, optionally filtered by status -- for the admin Top-ups list. */
-    public function with_relations($status = null, $limit = 50)
+    /**
+     * Top-up history joined with loan/customer, optionally filtered by
+     * status, paginated with optional search across loan account number /
+     * customer name -- for the admin Top-ups list.
+     */
+    public function with_relations($status = null, $search = '', $per_page = 15, $page = 1)
     {
-        $query = $this->db->select('loan_topups.*, loans.loan_account_number, customers.name AS customer_name')
-            ->from('loan_topups')
-            ->join('loans', 'loans.id = loan_topups.loan_id', 'left')
-            ->join('customers', 'customers.id = loans.customer_id', 'left');
+        $build = function () use ($status, $search) {
+            $query = $this->db->from('loan_topups')
+                ->join('loans', 'loans.id = loan_topups.loan_id', 'left')
+                ->join('customers', 'customers.id = loans.customer_id', 'left');
 
-        if ($status !== null) {
-            $query->where('loan_topups.status', $status);
-        }
+            if ($status !== null) {
+                $query->where('loan_topups.status', $status);
+            }
 
-        return $query->order_by('loan_topups.id', 'DESC')->limit($limit)->get()->result_array();
+            if ($search !== '') {
+                $query->group_start()
+                    ->like('loans.loan_account_number', $search)
+                    ->or_like('customers.name', $search)
+                    ->group_end();
+            }
+
+            return $query;
+        };
+
+        $total = $build()->count_all_results();
+
+        $data = $build()
+            ->select('loan_topups.*, loans.loan_account_number, customers.name AS customer_name')
+            ->order_by('loan_topups.id', 'DESC')
+            ->limit($per_page, ($page - 1) * $per_page)
+            ->get()
+            ->result_array();
+
+        return array(
+            'data' => $data,
+            'total' => $total,
+            'per_page' => $per_page,
+            'page' => $page,
+            'last_page' => (int) max(1, ceil($total / $per_page)),
+        );
     }
 }

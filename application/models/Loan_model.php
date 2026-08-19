@@ -73,6 +73,52 @@ class Loan_model extends MY_Model
             ->result_array();
     }
 
+    /**
+     * Added for the admin Loan Approvals queue: paginated pending-approval
+     * loans for a given workflow stage, joined with customer/branch names,
+     * with optional customer name/mobile/loan_account_number search --
+     * replaces the former unbounded raw join query in
+     * Loan_approvals::index().
+     */
+    public function pending_approvals($stage, $search = '', $per_page = 15, $page = 1)
+    {
+        $build = function () use ($stage, $search) {
+            $query = $this->db->from('loans')
+                ->join('loan_approval_workflows', 'loan_approval_workflows.loan_id = loans.id')
+                ->join('customers', 'customers.id = loans.customer_id', 'left')
+                ->join('branches', 'branches.id = loans.branch_id', 'left')
+                ->where('loan_approval_workflows.current_stage', $stage)
+                ->where('loan_approval_workflows.status', 'PENDING');
+
+            if ($search !== '') {
+                $query->group_start()
+                    ->like('customers.name', $search)
+                    ->or_like('customers.mobile', $search)
+                    ->or_like('loans.loan_account_number', $search)
+                    ->group_end();
+            }
+
+            return $query;
+        };
+
+        $total = $build()->count_all_results();
+
+        $data = $build()
+            ->select('loans.*, customers.name AS customer_name, customers.mobile AS customer_mobile, branches.name AS branch_name')
+            ->order_by('loans.created_at', 'ASC')
+            ->limit($per_page, ($page - 1) * $per_page)
+            ->get()
+            ->result_array();
+
+        return array(
+            'data' => $data,
+            'total' => $total,
+            'per_page' => $per_page,
+            'page' => $page,
+            'last_page' => (int) max(1, ceil($total / $per_page)),
+        );
+    }
+
     public function recent_with_relations($limit = 8)
     {
         return $this->with_relations(array(), 'loans.id DESC', $limit);

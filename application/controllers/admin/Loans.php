@@ -103,7 +103,7 @@ class Loans extends Admin_Controller
         $this->render('loan_receipt', array(
             'page_title' => 'Pledge Receipt — ' . ($loan['loan_account_number'] ?? 'Loan #' . $id),
             'loan' => $loan,
-            'items' => $this->jewellery_items->with_relations(array('jewellery_items.loan_id' => $id), 100),
+            'items' => $this->jewellery_items->with_relations_limited(array('jewellery_items.loan_id' => $id), 100),
             'address' => $this->customer_addresses->first(array('customer_id' => $loan['customer_id'])),
             'charges' => $this->loan_charges->all(array('loan_id' => $id)),
         ));

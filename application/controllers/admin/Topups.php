@@ -34,13 +34,23 @@ class Topups extends Admin_Controller
         }
         unset($loan);
 
+        $awaiting_page = max(1, (int) $this->input->get('awaiting_page'));
+        $awaiting_result = $this->topups->with_relations('APPROVED', $search, 15, $awaiting_page);
+
+        $history_page = max(1, (int) $this->input->get('history_page'));
+        $history_result = $this->topups->with_relations('DISBURSED', $search, 15, $history_page);
+
         $this->render('topups', array(
             'page_title' => 'Top-ups',
             'search' => $search,
             'matches' => $matches,
             'role_code' => $this->user['role_code'],
-            'awaiting_disbursement' => $this->topups->with_relations('APPROVED'),
-            'history' => $this->topups->with_relations('DISBURSED'),
+            'awaiting_disbursement' => $awaiting_result['data'],
+            'awaiting_pagination' => $awaiting_result,
+            'awaiting_filters' => array('search' => $search),
+            'history' => $history_result['data'],
+            'history_pagination' => $history_result,
+            'history_filters' => array('search' => $search),
         ));
     }
 

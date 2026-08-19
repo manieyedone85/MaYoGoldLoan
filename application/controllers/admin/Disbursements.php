@@ -27,11 +27,35 @@ class Disbursements extends Admin_Controller
     /** GET /admin/disbursements */
     public function index()
     {
+        $pending_page = max(1, (int) $this->input->get('pending_page'));
+        $pending_per_page = 15;
+        $pending_where = array('loans.status' => 'APPROVED');
+        $pending_total = $this->loans->count($pending_where);
+        $pending = $this->loans->with_relations($pending_where, 'loans.id DESC', $pending_per_page, ($pending_page - 1) * $pending_per_page);
+        $pending_pagination = array(
+            'data' => $pending,
+            'total' => $pending_total,
+            'per_page' => $pending_per_page,
+            'page' => $pending_page,
+            'last_page' => (int) max(1, ceil($pending_total / $pending_per_page)),
+        );
+
+        $history_search = trim((string) $this->input->get('history_search'));
+        $history_page = max(1, (int) $this->input->get('history_page'));
+        $history_result = $this->disbursements->with_relations($history_search, 15, $history_page);
+
         $this->render('disbursements', array(
             'page_title' => 'Disbursements',
-            'pending' => $this->loans->with_relations(array('loans.status' => 'APPROVED')),
-            'history' => $this->disbursements->with_relations(50),
+            'pending' => $pending,
+            'pending_pagination' => $pending_pagination,
+            'history' => $history_result['data'],
+            'history_pagination' => $history_result,
             'modes' => $this->disbursement_modes->all(array(), 'code ASC'),
+            'filters' => array(
+                'pending_page' => $pending_page,
+                'history_search' => $history_search,
+                'history_page' => $history_page,
+            ),
         ));
     }
 

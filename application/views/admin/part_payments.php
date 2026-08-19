@@ -4,7 +4,7 @@
 <?php endif; ?>
 
 <form method="GET" action="<?php echo base_url('admin/part-payments'); ?>" class="d-flex gap-2 mb-3">
-    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" class="form-control w-auto" placeholder="Loan A/C number or customer mobile">
+    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" class="form-control w-auto" placeholder="Loan A/C number, customer mobile, or name — also filters the tables below">
     <button type="submit" class="btn btn-outline-secondary">Search</button>
 </form>
 
@@ -86,6 +86,17 @@
                     </tbody>
                 </table>
             </div>
+            <?php if ($payment_pagination['last_page'] > 1): ?>
+                <div class="card-footer bg-white">
+                    <ul class="pagination pagination-sm mb-0">
+                        <?php for ($p = 1; $p <= $payment_pagination['last_page']; $p++): ?>
+                            <li class="page-item <?php echo $p == $payment_pagination['page'] ? 'active' : ''; ?>">
+                                <a class="page-link" href="<?php echo base_url('admin/part-payments?' . http_build_query(array_merge($payment_filters, array('payment_page' => $p)))); ?>"><?php echo $p; ?></a>
+                            </li>
+                        <?php endfor; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
     <div class="col-md-6">
@@ -107,8 +118,18 @@
                     </tbody>
                 </table>
             </div>
+            <?php if ($reload_pagination['last_page'] > 1): ?>
+                <div class="card-footer bg-white">
+                    <ul class="pagination pagination-sm mb-0">
+                        <?php for ($p = 1; $p <= $reload_pagination['last_page']; $p++): ?>
+                            <li class="page-item <?php echo $p == $reload_pagination['page'] ? 'active' : ''; ?>">
+                                <a class="page-link" href="<?php echo base_url('admin/part-payments?' . http_build_query(array_merge($reload_filters, array('reload_page' => $p)))); ?>"><?php echo $p; ?></a>
+                            </li>
+                        <?php endfor; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

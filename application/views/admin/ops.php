@@ -7,6 +7,13 @@
 <div class="tab-content">
 
 <div class="tab-pane fade show active" id="tab-notifications">
+    <form method="GET" action="<?php echo base_url('admin/ops'); ?>" class="d-flex gap-2 mb-3">
+        <input type="hidden" name="queue_search" value="<?php echo htmlspecialchars($notification_filters['queue_search']); ?>">
+        <input type="hidden" name="queue_page" value="<?php echo (int) $notification_filters['queue_page']; ?>">
+        <input type="text" name="notif_search" value="<?php echo htmlspecialchars($notification_filters['notif_search']); ?>" class="form-control w-auto" placeholder="Search channel / status">
+        <button type="submit" class="btn btn-outline-secondary">Filter</button>
+    </form>
+
     <div class="card border-0 shadow-sm">
         <div class="table-responsive">
             <table class="table table-sm mb-0">
@@ -27,6 +34,17 @@
                 </tbody>
             </table>
         </div>
+        <?php if ($notification_pagination['last_page'] > 1): ?>
+            <div class="card-footer bg-white">
+                <ul class="pagination pagination-sm mb-0">
+                    <?php for ($p = 1; $p <= $notification_pagination['last_page']; $p++): ?>
+                        <li class="page-item <?php echo $p == $notification_pagination['page'] ? 'active' : ''; ?>">
+                            <a class="page-link" href="<?php echo base_url('admin/ops?' . http_build_query(array_merge($notification_filters, array('notif_page' => $p)))); ?>"><?php echo $p; ?></a>
+                        </li>
+                    <?php endfor; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -52,6 +70,13 @@
 </div>
 
 <div class="tab-pane fade" id="tab-sync">
+    <form method="GET" action="<?php echo base_url('admin/ops'); ?>" class="d-flex gap-2 mb-3">
+        <input type="hidden" name="notif_search" value="<?php echo htmlspecialchars($sync_queue_filters['notif_search']); ?>">
+        <input type="hidden" name="notif_page" value="<?php echo (int) $sync_queue_filters['notif_page']; ?>">
+        <input type="text" name="queue_search" value="<?php echo htmlspecialchars($sync_queue_filters['queue_search']); ?>" class="form-control w-auto" placeholder="Search entity type / status">
+        <button type="submit" class="btn btn-outline-secondary">Filter</button>
+    </form>
+
     <div class="card border-0 shadow-sm">
         <div class="table-responsive">
             <table class="table table-sm mb-0">
@@ -70,6 +95,17 @@
                 </tbody>
             </table>
         </div>
+        <?php if ($sync_queue_pagination['last_page'] > 1): ?>
+            <div class="card-footer bg-white">
+                <ul class="pagination pagination-sm mb-0">
+                    <?php for ($p = 1; $p <= $sync_queue_pagination['last_page']; $p++): ?>
+                        <li class="page-item <?php echo $p == $sync_queue_pagination['page'] ? 'active' : ''; ?>">
+                            <a class="page-link" href="<?php echo base_url('admin/ops?' . http_build_query(array_merge($sync_queue_filters, array('queue_page' => $p)))); ?>"><?php echo $p; ?></a>
+                        </li>
+                    <?php endfor; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 

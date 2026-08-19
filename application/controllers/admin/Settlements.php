@@ -34,11 +34,16 @@ class Settlements extends Admin_Controller
         }
         unset($loan);
 
+        $history_page = max(1, (int) $this->input->get('history_page'));
+        $history_result = $this->closures->with_relations($search, 15, $history_page);
+
         $this->render('settlements', array(
             'page_title' => 'Settlements',
             'search' => $search,
             'matches' => $matches,
-            'history' => $this->closures->with_relations(50),
+            'history' => $history_result['data'],
+            'history_pagination' => $history_result,
+            'history_filters' => array('search' => $search),
         ));
     }
 

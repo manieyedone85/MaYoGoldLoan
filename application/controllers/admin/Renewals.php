@@ -31,11 +31,16 @@ class Renewals extends Admin_Controller
         }
         unset($loan);
 
+        $history_page = max(1, (int) $this->input->get('history_page'));
+        $history_result = $this->renewals->with_relations($search, 15, $history_page);
+
         $this->render('renewals', array(
             'page_title' => 'Renewals',
             'search' => $search,
             'matches' => $matches,
-            'history' => $this->renewals->with_relations(50),
+            'history' => $history_result['data'],
+            'history_pagination' => $history_result,
+            'history_filters' => array('search' => $search),
         ));
     }
 

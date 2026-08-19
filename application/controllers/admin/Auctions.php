@@ -29,9 +29,16 @@ class Auctions extends Admin_Controller
     /** GET /admin/auctions */
     public function index()
     {
+        $search = trim((string) $this->input->get('search'));
+        $page = max(1, (int) $this->input->get('page'));
+
+        $result = $this->schedules->with_relations($search, 15, $page);
+
         $this->render('auctions', array(
             'page_title' => 'Auctions',
-            'schedules' => $this->schedules->with_relations(),
+            'schedules' => $result['data'],
+            'pagination' => $result,
+            'filters' => array('search' => $search),
             'branches' => $this->branches->all(array(), 'name ASC'),
         ));
     }

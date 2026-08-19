@@ -33,12 +33,22 @@ class Part_payments extends Admin_Controller
         }
         unset($loan);
 
+        $payment_page = max(1, (int) $this->input->get('payment_page'));
+        $payment_result = $this->part_payments->with_relations($search, 15, $payment_page);
+
+        $reload_page = max(1, (int) $this->input->get('reload_page'));
+        $reload_result = $this->reloads->with_relations($search, 15, $reload_page);
+
         $this->render('part_payments', array(
             'page_title' => 'Part Payments & Re-loans',
             'search' => $search,
             'matches' => $matches,
-            'payment_history' => $this->part_payments->with_relations(50),
-            'reload_history' => $this->reloads->with_relations(50),
+            'payment_history' => $payment_result['data'],
+            'payment_pagination' => $payment_result,
+            'payment_filters' => array('search' => $search),
+            'reload_history' => $reload_result['data'],
+            'reload_pagination' => $reload_result,
+            'reload_filters' => array('search' => $search),
         ));
     }
 

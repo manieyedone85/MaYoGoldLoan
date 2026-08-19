@@ -39,18 +39,92 @@ class Masters extends Admin_Controller
         // Admin_Controller already loads Role_model as $this->roles.
     }
 
-    /** GET /admin/masters */
+    /**
+     * GET /admin/masters
+     *
+     * Each of the 7 tabs is an independent server-side paginated + searched
+     * grid (see MY_Model::paginate()), with its own GET param prefix so
+     * switching/paginating one tab doesn't collide with another. $filters
+     * carries every tab's current search+page so each tab's pager/search
+     * form preserves the other six tabs' state via
+     * http_build_query(array_merge($filters, array('<tab>_page' => $p))).
+     */
     public function index()
     {
+        $branches_search = trim((string) $this->input->get('branches_search'));
+        $branches_page = max(1, (int) $this->input->get('branches_page'));
+        $branches_result = $this->branches->paginate(array(), 'name ASC', 15, $branches_page, $branches_search, array('branch_code', 'name', 'city', 'state'));
+
+        $products_search = trim((string) $this->input->get('products_search'));
+        $products_page = max(1, (int) $this->input->get('products_page'));
+        $products_result = $this->loan_products->paginate(array(), 'name ASC', 15, $products_page, $products_search, array('code', 'name'));
+
+        $roles_search = trim((string) $this->input->get('roles_search'));
+        $roles_page = max(1, (int) $this->input->get('roles_page'));
+        $roles_result = $this->roles->paginate(array(), 'name ASC', 15, $roles_page, $roles_search, array('code', 'name'));
+
+        $rates_page = max(1, (int) $this->input->get('rates_page'));
+        $rates_result = $this->gold_rates->paginate(array(), 'effective_date DESC', 15, $rates_page);
+
+        $vaults_search = trim((string) $this->input->get('vaults_search'));
+        $vaults_page = max(1, (int) $this->input->get('vaults_page'));
+        $vaults_result = $this->vaults->paginate(array(), 'name ASC', 15, $vaults_page, $vaults_search, array('name'));
+
+        $gl_search = trim((string) $this->input->get('gl_search'));
+        $gl_page = max(1, (int) $this->input->get('gl_page'));
+        $gl_result = $this->gl_accounts->paginate(array(), 'code ASC', 15, $gl_page, $gl_search, array('code', 'name', 'type'));
+
+        $limits_page = max(1, (int) $this->input->get('limits_page'));
+        $limits_result = $this->approval_limits->paginate(array(), 'id ASC', 15, $limits_page);
+        // with_relations() used to join role name/code in SQL; enrich the
+        // (now plain-table) page of rows the same way the view expects
+        // ('role_name', matching Loan_approval_limit_model::with_relations()).
+        foreach ($limits_result['data'] as &$limit_row) {
+            $limit_role = $this->roles->find($limit_row['role_id']);
+            $limit_row['role_name'] = $limit_role ? $limit_role['name'] : null;
+            $limit_row['role_code'] = $limit_role ? $limit_role['code'] : null;
+        }
+        unset($limit_row);
+
+        $filters = array(
+            'branches_search' => $branches_search,
+            'branches_page' => $branches_page,
+            'products_search' => $products_search,
+            'products_page' => $products_page,
+            'roles_search' => $roles_search,
+            'roles_page' => $roles_page,
+            'rates_page' => $rates_page,
+            'vaults_search' => $vaults_search,
+            'vaults_page' => $vaults_page,
+            'gl_search' => $gl_search,
+            'gl_page' => $gl_page,
+            'limits_page' => $limits_page,
+        );
+
         $this->render('masters', array(
             'page_title' => 'Masters',
-            'branches' => $this->branches->all(array(), 'name ASC'),
-            'loan_products' => $this->loan_products->all(array(), 'name ASC'),
-            'roles' => $this->roles->all(array(), 'name ASC'),
-            'gold_rates' => $this->gold_rates->all(array(), 'effective_date DESC'),
-            'vaults' => $this->vaults->all(array(), 'name ASC'),
-            'gl_accounts' => $this->gl_accounts->all(array(), 'code ASC'),
-            'approval_limits' => $this->approval_limits->with_relations(),
+            'branches' => $branches_result['data'],
+            'branches_pagination' => $branches_result,
+            // Full (unpaginated) branch/role lists are still needed for the
+            // create/edit modal <select> dropdowns (Vaults -> branch,
+            // Approval Limits -> role) -- those aren't the unbounded-grid
+            // problem this change targets, and paginating them would silently
+            // hide options from the dropdowns.
+            'all_branches' => $this->branches->all(array(), 'name ASC'),
+            'loan_products' => $products_result['data'],
+            'loan_products_pagination' => $products_result,
+            'roles' => $roles_result['data'],
+            'roles_pagination' => $roles_result,
+            'all_roles' => $this->roles->all(array(), 'name ASC'),
+            'gold_rates' => $rates_result['data'],
+            'gold_rates_pagination' => $rates_result,
+            'vaults' => $vaults_result['data'],
+            'vaults_pagination' => $vaults_result,
+            'gl_accounts' => $gl_result['data'],
+            'gl_accounts_pagination' => $gl_result,
+            'approval_limits' => $limits_result['data'],
+            'approval_limits_pagination' => $limits_result,
+            'filters' => $filters,
             // Propose/approve rate are role-gated per-action below (not the whole
             // controller, since APPRAISER/BRANCH_MANAGER/REGIONAL_MANAGER need
             // access to just those two actions, unlike the rest of Masters).

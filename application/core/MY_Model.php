@@ -40,29 +40,46 @@ class MY_Model extends CI_Model
         return $this->db->from($this->table)->where($where)->limit(1)->get()->row_array();
     }
 
-    public function paginate($where = array(), $order_by = null, $per_page = 15, $page = 1)
+    /**
+     * Paginated list over $this->table, with optional multi-column LIKE
+     * search (OR'd together) alongside exact-match $where conditions.
+     * Rebuilds the query from scratch for the count and the data fetch since
+     * CI3's Query Builder can't safely be reused across two get() calls with
+     * different select()/limit() clauses -- see Customer_model::admin_list()
+     * for the same pattern used where a join is also needed.
+     */
+    public function paginate($where = array(), $order_by = null, $per_page = 15, $page = 1, $search = '', array $search_columns = array())
     {
-        $query = $this->db->from($this->table);
-        if (! empty($where)) {
-            $query->where($where);
-        }
-        $total = $query->count_all_results('', false);
+        $build = function () use ($where, $search, $search_columns) {
+            $query = $this->db->from($this->table);
+            if (! empty($where)) {
+                $query->where($where);
+            }
+            if ($search !== '' && ! empty($search_columns)) {
+                $query->group_start();
+                foreach ($search_columns as $i => $column) {
+                    $i === 0 ? $query->like($column, $search) : $query->or_like($column, $search);
+                }
+                $query->group_end();
+            }
 
-        $query = $this->db->from($this->table);
-        if (! empty($where)) {
-            $query->where($where);
-        }
+            return $query;
+        };
+
+        $total = $build()->count_all_results();
+
+        $query = $build();
         if ($order_by) {
             $query->order_by($order_by);
         }
-        $query->limit($per_page, ($page - 1) * $per_page);
+        $data = $query->limit($per_page, ($page - 1) * $per_page)->get()->result_array();
 
         return array(
-            'data' => $query->get()->result_array(),
+            'data' => $data,
             'total' => $total,
             'per_page' => $per_page,
             'page' => $page,
-            'last_page' => (int) ceil($total / $per_page),
+            'last_page' => (int) max(1, ceil($total / $per_page)),
         );
     }
 

@@ -26,11 +26,17 @@ class Kyc extends Admin_Controller
     public function index()
     {
         $status = trim((string) $this->input->get('status')) ?: 'PENDING';
+        $search = trim((string) $this->input->get('search'));
+        $page = max(1, (int) $this->input->get('page'));
+
+        $result = $this->documents->with_relations($status !== 'ALL' ? $status : null, $search, 15, $page);
 
         $this->render('kyc', array(
             'page_title' => 'KYC Verification',
             'status' => $status,
-            'documents' => $this->documents->with_relations($status !== 'ALL' ? $status : null),
+            'documents' => $result['data'],
+            'pagination' => $result,
+            'filters' => array('status' => $status, 'search' => $search),
             'document_types' => $this->document_types->all(array(), 'name ASC'),
             'can_upload' => in_array($this->user['role_code'], array('BRANCH_EXECUTIVE', 'BRANCH_MANAGER'), true),
             'can_verify' => in_array($this->user['role_code'], array('BRANCH_MANAGER', 'REGIONAL_MANAGER'), true),

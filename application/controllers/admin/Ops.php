@@ -23,11 +23,23 @@ class Ops extends Admin_Controller
     /** GET /admin/ops */
     public function index()
     {
+        $notif_search = trim((string) $this->input->get('notif_search'));
+        $notif_page = max(1, (int) $this->input->get('notif_page'));
+        $notification_logs = $this->notification_logs->paginate(array(), 'id DESC', 15, $notif_page, $notif_search, array('channel', 'status'));
+
+        $queue_search = trim((string) $this->input->get('queue_search'));
+        $queue_page = max(1, (int) $this->input->get('queue_page'));
+        $sync_queue = $this->sync_queues->paginate(array(), 'id DESC', 15, $queue_page, $queue_search, array('entity_type', 'status'));
+
         $this->render('ops', array(
             'page_title' => 'Ops',
-            'notification_logs' => $this->notification_logs->all(array(), 'id DESC'),
+            'notification_logs' => $notification_logs['data'],
+            'notification_pagination' => $notification_logs,
+            'notification_filters' => array('notif_search' => $notif_search, 'queue_search' => $queue_search, 'queue_page' => $queue_page),
             'notification_templates' => $this->notification_templates->all(array(), 'code ASC'),
-            'sync_queue' => $this->sync_queues->all(array(), 'id DESC'),
+            'sync_queue' => $sync_queue['data'],
+            'sync_queue_pagination' => $sync_queue,
+            'sync_queue_filters' => array('queue_search' => $queue_search, 'notif_search' => $notif_search, 'notif_page' => $notif_page),
         ));
     }
 }

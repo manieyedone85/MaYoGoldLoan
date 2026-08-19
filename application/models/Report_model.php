@@ -432,6 +432,64 @@ class Report_model extends MY_Model
         );
     }
 
+    /**
+     * GST filing summary, grouped by branch since each branch files under
+     * its own GSTIN (branches.gst_number). The only tax-relevant data this
+     * system tracks is GST charged on loan processing fees (loan_charges
+     * with charge_type='GST', mirrored onto loans.gst_amount at creation
+     * time -- see api/v1/Loan.php) -- there is no TDS/income-tax data
+     * anywhere in this schema, so that's out of scope for this report.
+     */
+    public function gst_summary($branch_id, $from, $to)
+    {
+        list($from, $to, $start, $end) = $this->_period_range($from, $to);
+
+        $query = $this->db->select('loan_charges.id, loan_charges.amount AS gst_amount, loan_charges.created_at, loans.loan_account_number, loans.branch_id, branches.name AS branch_name, branches.gst_number, customers.name AS customer_name')
+            ->from('loan_charges')
+            ->join('loans', 'loans.id = loan_charges.loan_id', 'left')
+            ->join('branches', 'branches.id = loans.branch_id', 'left')
+            ->join('customers', 'customers.id = loans.customer_id', 'left')
+            ->where('loan_charges.charge_type', 'GST')
+            ->where('loan_charges.created_at >=', $start)
+            ->where('loan_charges.created_at <', $end);
+        if ($branch_id) {
+            $query->where('loans.branch_id', $branch_id);
+        }
+        $rows = $query->order_by('loan_charges.created_at', 'ASC')->get()->result_array();
+
+        $by_branch = array();
+        $total_gst = 0.0;
+        foreach ($rows as $row) {
+            $bid = $row['branch_id'];
+            if (! isset($by_branch[$bid])) {
+                $by_branch[$bid] = array(
+                    'branch_id' => $bid,
+                    'branch_name' => $row['branch_name'],
+                    'gst_number' => $row['gst_number'],
+                    'count' => 0,
+                    'total_gst_amount' => 0.0,
+                );
+            }
+            $by_branch[$bid]['count']++;
+            $by_branch[$bid]['total_gst_amount'] += (float) $row['gst_amount'];
+            $total_gst += (float) $row['gst_amount'];
+        }
+        foreach ($by_branch as &$branch_row) {
+            $branch_row['total_gst_amount'] = round($branch_row['total_gst_amount'], 2);
+        }
+        unset($branch_row);
+
+        return array(
+            'branch_id' => $branch_id,
+            'from' => $from,
+            'to' => $to,
+            'count' => count($rows),
+            'total_gst_amount' => round($total_gst, 2),
+            'by_branch' => array_values($by_branch),
+            'data' => $rows,
+        );
+    }
+
     private function _normalize_date($date)
     {
         return ($date && strtotime($date) !== false) ? date('Y-m-d', strtotime($date)) : date('Y-m-d');

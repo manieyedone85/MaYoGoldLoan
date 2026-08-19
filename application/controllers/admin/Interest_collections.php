@@ -31,11 +31,16 @@ class Interest_collections extends Admin_Controller
         }
         unset($loan);
 
+        $history_page = max(1, (int) $this->input->get('history_page'));
+        $history_result = $this->collections->with_relations($search, 15, $history_page);
+
         $this->render('interest_collections', array(
             'page_title' => 'Interest Collections',
             'search' => $search,
             'matches' => $matches,
-            'history' => $this->collections->with_relations(50),
+            'history' => $history_result['data'],
+            'history_pagination' => $history_result,
+            'history_filters' => array('search' => $search),
         ));
     }
 

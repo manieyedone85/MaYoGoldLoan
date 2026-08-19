@@ -20,7 +20,14 @@
 <?php if ($is_ops): ?>
 <!-- ===================== Branches ===================== -->
 <div class="tab-pane fade show active" id="tab-branches">
-    <div class="d-flex justify-content-end mb-3">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <form method="GET" action="<?php echo base_url('admin/masters'); ?>" class="d-flex gap-2">
+            <input type="text" name="branches_search" value="<?php echo htmlspecialchars($filters['branches_search']); ?>" class="form-control form-control-sm w-auto" placeholder="Search code / name / city / state">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Filter</button>
+            <?php foreach ($filters as $fkey => $fval): if ($fkey === 'branches_search' || $fkey === 'branches_page') continue; ?>
+                <input type="hidden" name="<?php echo $fkey; ?>" value="<?php echo htmlspecialchars($fval); ?>">
+            <?php endforeach; ?>
+        </form>
         <button type="button" class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#createBranchModal"><i class="bi bi-plus-lg"></i> New Branch</button>
     </div>
     <div class="card border-0 shadow-sm">
@@ -68,12 +75,30 @@
                 </tbody>
             </table>
         </div>
+        <?php if ($branches_pagination['last_page'] > 1): ?>
+            <div class="card-footer bg-white">
+                <ul class="pagination pagination-sm mb-0">
+                    <?php for ($p = 1; $p <= $branches_pagination['last_page']; $p++): ?>
+                        <li class="page-item <?php echo $p == $branches_pagination['page'] ? 'active' : ''; ?>">
+                            <a class="page-link" href="<?php echo base_url('admin/masters?' . http_build_query(array_merge($filters, array('branches_page' => $p)))); ?>"><?php echo $p; ?></a>
+                        </li>
+                    <?php endfor; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 
 <!-- ===================== Schemes (Loan Products) ===================== -->
 <div class="tab-pane fade" id="tab-schemes">
-    <div class="d-flex justify-content-end mb-3">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <form method="GET" action="<?php echo base_url('admin/masters'); ?>" class="d-flex gap-2">
+            <input type="text" name="products_search" value="<?php echo htmlspecialchars($filters['products_search']); ?>" class="form-control form-control-sm w-auto" placeholder="Search code / name">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Filter</button>
+            <?php foreach ($filters as $fkey => $fval): if ($fkey === 'products_search' || $fkey === 'products_page') continue; ?>
+                <input type="hidden" name="<?php echo $fkey; ?>" value="<?php echo htmlspecialchars($fval); ?>">
+            <?php endforeach; ?>
+        </form>
         <button type="button" class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#createSchemeModal"><i class="bi bi-plus-lg"></i> New Scheme</button>
     </div>
     <div class="card border-0 shadow-sm">
@@ -133,12 +158,30 @@
                 </tbody>
             </table>
         </div>
+        <?php if ($loan_products_pagination['last_page'] > 1): ?>
+            <div class="card-footer bg-white">
+                <ul class="pagination pagination-sm mb-0">
+                    <?php for ($p = 1; $p <= $loan_products_pagination['last_page']; $p++): ?>
+                        <li class="page-item <?php echo $p == $loan_products_pagination['page'] ? 'active' : ''; ?>">
+                            <a class="page-link" href="<?php echo base_url('admin/masters?' . http_build_query(array_merge($filters, array('products_page' => $p)))); ?>"><?php echo $p; ?></a>
+                        </li>
+                    <?php endfor; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 
 <!-- ===================== Roles ===================== -->
 <div class="tab-pane fade" id="tab-roles">
-    <div class="d-flex justify-content-end mb-3">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <form method="GET" action="<?php echo base_url('admin/masters'); ?>" class="d-flex gap-2">
+            <input type="text" name="roles_search" value="<?php echo htmlspecialchars($filters['roles_search']); ?>" class="form-control form-control-sm w-auto" placeholder="Search code / name">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Filter</button>
+            <?php foreach ($filters as $fkey => $fval): if ($fkey === 'roles_search' || $fkey === 'roles_page') continue; ?>
+                <input type="hidden" name="<?php echo $fkey; ?>" value="<?php echo htmlspecialchars($fval); ?>">
+            <?php endforeach; ?>
+        </form>
         <button type="button" class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#createRoleModal"><i class="bi bi-plus-lg"></i> New Role</button>
     </div>
     <div class="card border-0 shadow-sm">
@@ -177,12 +220,30 @@
                 </tbody>
             </table>
         </div>
+        <?php if ($roles_pagination['last_page'] > 1): ?>
+            <div class="card-footer bg-white">
+                <ul class="pagination pagination-sm mb-0">
+                    <?php for ($p = 1; $p <= $roles_pagination['last_page']; $p++): ?>
+                        <li class="page-item <?php echo $p == $roles_pagination['page'] ? 'active' : ''; ?>">
+                            <a class="page-link" href="<?php echo base_url('admin/masters?' . http_build_query(array_merge($filters, array('roles_page' => $p)))); ?>"><?php echo $p; ?></a>
+                        </li>
+                    <?php endfor; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 
 <!-- ===================== Vaults ===================== -->
 <div class="tab-pane fade" id="tab-vaults">
-    <div class="d-flex justify-content-end mb-3">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <form method="GET" action="<?php echo base_url('admin/masters'); ?>" class="d-flex gap-2">
+            <input type="text" name="vaults_search" value="<?php echo htmlspecialchars($filters['vaults_search']); ?>" class="form-control form-control-sm w-auto" placeholder="Search name">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Filter</button>
+            <?php foreach ($filters as $fkey => $fval): if ($fkey === 'vaults_search' || $fkey === 'vaults_page') continue; ?>
+                <input type="hidden" name="<?php echo $fkey; ?>" value="<?php echo htmlspecialchars($fval); ?>">
+            <?php endforeach; ?>
+        </form>
         <button type="button" class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#createVaultModal"><i class="bi bi-plus-lg"></i> New Vault</button>
     </div>
     <div class="card border-0 shadow-sm">
@@ -193,7 +254,7 @@
                     <?php if (empty($vaults)): ?>
                         <tr><td colspan="3" class="text-center text-muted py-4">No vaults yet.</td></tr>
                     <?php else: foreach ($vaults as $vault): ?>
-                        <?php $vault_branch = null; foreach ($branches as $b) { if ((int) $b['id'] === (int) $vault['branch_id']) { $vault_branch = $b; break; } } ?>
+                        <?php $vault_branch = null; foreach ($all_branches as $b) { if ((int) $b['id'] === (int) $vault['branch_id']) { $vault_branch = $b; break; } } ?>
                         <tr>
                             <td><?php echo htmlspecialchars($vault['name']); ?></td>
                             <td><?php echo htmlspecialchars($vault_branch['name'] ?? '—'); ?></td>
@@ -209,7 +270,7 @@
                                         <div class="mb-1">
                                             <label class="form-label">Branch</label>
                                             <select name="branch_id" class="form-select">
-                                                <?php foreach ($branches as $b): ?>
+                                                <?php foreach ($all_branches as $b): ?>
                                                     <option value="<?php echo (int) $b['id']; ?>" <?php echo (int) $b['id'] === (int) $vault['branch_id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($b['name']); ?></option>
                                                 <?php endforeach; ?>
                                             </select>
@@ -223,12 +284,30 @@
                 </tbody>
             </table>
         </div>
+        <?php if ($vaults_pagination['last_page'] > 1): ?>
+            <div class="card-footer bg-white">
+                <ul class="pagination pagination-sm mb-0">
+                    <?php for ($p = 1; $p <= $vaults_pagination['last_page']; $p++): ?>
+                        <li class="page-item <?php echo $p == $vaults_pagination['page'] ? 'active' : ''; ?>">
+                            <a class="page-link" href="<?php echo base_url('admin/masters?' . http_build_query(array_merge($filters, array('vaults_page' => $p)))); ?>"><?php echo $p; ?></a>
+                        </li>
+                    <?php endfor; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 
 <!-- ===================== GL Accounts ===================== -->
 <div class="tab-pane fade" id="tab-gl-accounts">
-    <div class="d-flex justify-content-end mb-3">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <form method="GET" action="<?php echo base_url('admin/masters'); ?>" class="d-flex gap-2">
+            <input type="text" name="gl_search" value="<?php echo htmlspecialchars($filters['gl_search']); ?>" class="form-control form-control-sm w-auto" placeholder="Search code / name / type">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Filter</button>
+            <?php foreach ($filters as $fkey => $fval): if ($fkey === 'gl_search' || $fkey === 'gl_page') continue; ?>
+                <input type="hidden" name="<?php echo $fkey; ?>" value="<?php echo htmlspecialchars($fval); ?>">
+            <?php endforeach; ?>
+        </form>
         <button type="button" class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#createGlAccountModal"><i class="bi bi-plus-lg"></i> New GL Account</button>
     </div>
     <div class="card border-0 shadow-sm">
@@ -270,6 +349,17 @@
                 </tbody>
             </table>
         </div>
+        <?php if ($gl_accounts_pagination['last_page'] > 1): ?>
+            <div class="card-footer bg-white">
+                <ul class="pagination pagination-sm mb-0">
+                    <?php for ($p = 1; $p <= $gl_accounts_pagination['last_page']; $p++): ?>
+                        <li class="page-item <?php echo $p == $gl_accounts_pagination['page'] ? 'active' : ''; ?>">
+                            <a class="page-link" href="<?php echo base_url('admin/masters?' . http_build_query(array_merge($filters, array('gl_page' => $p)))); ?>"><?php echo $p; ?></a>
+                        </li>
+                    <?php endfor; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -308,6 +398,17 @@
                 </tbody>
             </table>
         </div>
+        <?php if ($approval_limits_pagination['last_page'] > 1): ?>
+            <div class="card-footer bg-white">
+                <ul class="pagination pagination-sm mb-0">
+                    <?php for ($p = 1; $p <= $approval_limits_pagination['last_page']; $p++): ?>
+                        <li class="page-item <?php echo $p == $approval_limits_pagination['page'] ? 'active' : ''; ?>">
+                            <a class="page-link" href="<?php echo base_url('admin/masters?' . http_build_query(array_merge($filters, array('limits_page' => $p)))); ?>"><?php echo $p; ?></a>
+                        </li>
+                    <?php endfor; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 <?php endif; ?>
@@ -348,6 +449,17 @@
                 </tbody>
             </table>
         </div>
+        <?php if ($gold_rates_pagination['last_page'] > 1): ?>
+            <div class="card-footer bg-white">
+                <ul class="pagination pagination-sm mb-0">
+                    <?php for ($p = 1; $p <= $gold_rates_pagination['last_page']; $p++): ?>
+                        <li class="page-item <?php echo $p == $gold_rates_pagination['page'] ? 'active' : ''; ?>">
+                            <a class="page-link" href="<?php echo base_url('admin/masters?' . http_build_query(array_merge($filters, array('rates_page' => $p)))); ?>"><?php echo $p; ?></a>
+                        </li>
+                    <?php endfor; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -431,7 +543,7 @@
                 <div class="mb-1">
                     <label class="form-label">Branch</label>
                     <select name="branch_id" class="form-select">
-                        <?php foreach ($branches as $b): ?>
+                        <?php foreach ($all_branches as $b): ?>
                             <option value="<?php echo (int) $b['id']; ?>"><?php echo htmlspecialchars($b['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
@@ -472,7 +584,7 @@
                 <div class="mb-3">
                     <label class="form-label">Role</label>
                     <select name="role_id" class="form-select">
-                        <?php foreach ($roles as $r): ?>
+                        <?php foreach ($all_roles as $r): ?>
                             <option value="<?php echo (int) $r['id']; ?>"><?php echo htmlspecialchars($r['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
@@ -504,4 +616,3 @@
 </div>
 <?php endif; ?>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

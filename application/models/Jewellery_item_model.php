@@ -57,8 +57,58 @@ class Jewellery_item_model extends MY_Model
         return $this->all(array('customer_id' => $customer_id, 'status' => 'EVALUATED'));
     }
 
-    /** Items joined with customer name and category name, optionally filtered -- for the admin Jewellery Items list. */
-    public function with_relations($where = array(), $limit = 50)
+    /**
+     * Items joined with customer name and category name, optionally filtered
+     * and/or searched by barcode/customer name/mobile -- for the admin
+     * Jewellery Items list. Mirrors Customer_model::admin_list()'s
+     * closure-rebuild pagination shape.
+     */
+    public function with_relations($where = array(), $search = '', $per_page = 15, $page = 1)
+    {
+        $build = function () use ($where, $search) {
+            $query = $this->db->from('jewellery_items')
+                ->join('customers', 'customers.id = jewellery_items.customer_id', 'left')
+                ->join('jewellery_category_master', 'jewellery_category_master.id = jewellery_items.category_id', 'left');
+
+            if (! empty($where)) {
+                $query->where($where);
+            }
+            if ($search !== '') {
+                $query->group_start()
+                    ->like('jewellery_items.barcode', $search)
+                    ->or_like('customers.name', $search)
+                    ->or_like('customers.mobile', $search)
+                    ->group_end();
+            }
+
+            return $query;
+        };
+
+        $total = $build()->count_all_results();
+
+        $data = $build()
+            ->select('jewellery_items.*, customers.name AS customer_name, jewellery_category_master.name AS category_name')
+            ->order_by('jewellery_items.id', 'DESC')
+            ->limit($per_page, ($page - 1) * $per_page)
+            ->get()
+            ->result_array();
+
+        return array(
+            'data' => $data,
+            'total' => $total,
+            'per_page' => $per_page,
+            'page' => $page,
+            'last_page' => (int) max(1, ceil($total / $per_page)),
+        );
+    }
+
+    /**
+     * Plain (non-paginated) items list joined with customer/category names,
+     * capped at $limit -- preserves with_relations()'s pre-pagination
+     * behavior for Loans::receipt(), which needs a full flat list of a
+     * loan's pledged items, not a paginated page of them.
+     */
+    public function with_relations_limited($where = array(), $limit = 100)
     {
         $query = $this->db->select('jewellery_items.*, customers.name AS customer_name, jewellery_category_master.name AS category_name')
             ->from('jewellery_items')

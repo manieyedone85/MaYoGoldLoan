@@ -8,7 +8,7 @@
 <?php $can_disburse = in_array($role_code, array('CASHIER', 'ADMIN'), true); ?>
 
 <form method="GET" action="<?php echo base_url('admin/topups'); ?>" class="d-flex gap-2 mb-3">
-    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" class="form-control w-auto" placeholder="Loan A/C number or customer mobile">
+    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" class="form-control w-auto" placeholder="Loan A/C number, customer mobile, or name — also filters the tables below">
     <button type="submit" class="btn btn-outline-secondary">Search</button>
 </form>
 
@@ -108,6 +108,17 @@
             </tbody>
         </table>
     </div>
+    <?php if ($awaiting_pagination['last_page'] > 1): ?>
+        <div class="card-footer bg-white">
+            <ul class="pagination pagination-sm mb-0">
+                <?php for ($p = 1; $p <= $awaiting_pagination['last_page']; $p++): ?>
+                    <li class="page-item <?php echo $p == $awaiting_pagination['page'] ? 'active' : ''; ?>">
+                        <a class="page-link" href="<?php echo base_url('admin/topups?' . http_build_query(array_merge($awaiting_filters, array('awaiting_page' => $p)))); ?>"><?php echo $p; ?></a>
+                    </li>
+                <?php endfor; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
 </div>
 
 <div class="card border-0 shadow-sm">
@@ -128,6 +139,16 @@
             </tbody>
         </table>
     </div>
+    <?php if ($history_pagination['last_page'] > 1): ?>
+        <div class="card-footer bg-white">
+            <ul class="pagination pagination-sm mb-0">
+                <?php for ($p = 1; $p <= $history_pagination['last_page']; $p++): ?>
+                    <li class="page-item <?php echo $p == $history_pagination['page'] ? 'active' : ''; ?>">
+                        <a class="page-link" href="<?php echo base_url('admin/topups?' . http_build_query(array_merge($history_filters, array('history_page' => $p)))); ?>"><?php echo $p; ?></a>
+                    </li>
+                <?php endfor; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

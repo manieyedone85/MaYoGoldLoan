@@ -12,16 +12,43 @@ class Interest_collection_model extends MY_Model
         return (float) ($row['amount'] ?? 0);
     }
 
-    /** Collection history joined with loan/customer, newest first -- for the admin Interest Collections list. */
-    public function with_relations($limit = 50)
+    /**
+     * Collection history joined with loan/customer, newest first, paginated
+     * with optional search across loan account number / customer name --
+     * for the admin Interest Collections list.
+     */
+    public function with_relations($search = '', $per_page = 15, $page = 1)
     {
-        return $this->db->select('interest_collections.*, loans.loan_account_number, customers.name AS customer_name')
-            ->from('interest_collections')
-            ->join('loans', 'loans.id = interest_collections.loan_id', 'left')
-            ->join('customers', 'customers.id = loans.customer_id', 'left')
+        $build = function () use ($search) {
+            $query = $this->db->from('interest_collections')
+                ->join('loans', 'loans.id = interest_collections.loan_id', 'left')
+                ->join('customers', 'customers.id = loans.customer_id', 'left');
+
+            if ($search !== '') {
+                $query->group_start()
+                    ->like('loans.loan_account_number', $search)
+                    ->or_like('customers.name', $search)
+                    ->group_end();
+            }
+
+            return $query;
+        };
+
+        $total = $build()->count_all_results();
+
+        $data = $build()
+            ->select('interest_collections.*, loans.loan_account_number, customers.name AS customer_name')
             ->order_by('interest_collections.id', 'DESC')
-            ->limit($limit)
+            ->limit($per_page, ($page - 1) * $per_page)
             ->get()
             ->result_array();
+
+        return array(
+            'data' => $data,
+            'total' => $total,
+            'per_page' => $per_page,
+            'page' => $page,
+            'last_page' => (int) max(1, ceil($total / $per_page)),
+        );
     }
 }

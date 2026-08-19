@@ -37,6 +37,12 @@
 </div>
 <?php endif; ?>
 
+<form method="GET" action="<?php echo base_url('admin/accounting'); ?>" class="d-flex gap-2 mb-3">
+    <input type="hidden" name="customer_mobile" value="<?php echo htmlspecialchars($customer_mobile); ?>">
+    <input type="text" name="voucher_search" value="<?php echo htmlspecialchars($filters['voucher_search']); ?>" class="form-control w-auto" placeholder="Search voucher no. / type / branch">
+    <button type="submit" class="btn btn-outline-secondary">Filter Vouchers</button>
+</form>
+
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-white fw-semibold">Vouchers</div>
     <div class="table-responsive">
@@ -61,6 +67,17 @@
             </tbody>
         </table>
     </div>
+    <?php if ($voucher_pagination['last_page'] > 1): ?>
+        <div class="card-footer bg-white">
+            <ul class="pagination pagination-sm mb-0">
+                <?php for ($p = 1; $p <= $voucher_pagination['last_page']; $p++): ?>
+                    <li class="page-item <?php echo $p == $voucher_pagination['page'] ? 'active' : ''; ?>">
+                        <a class="page-link" href="<?php echo base_url('admin/accounting?' . http_build_query(array_merge($filters, array('voucher_page' => $p)))); ?>"><?php echo $p; ?></a>
+                    </li>
+                <?php endfor; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
 </div>
 
 <div class="modal fade" id="voucherModal" tabindex="-1">
@@ -110,4 +127,3 @@
     </div></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

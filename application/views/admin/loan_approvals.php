@@ -9,7 +9,8 @@
             <option value="<?php echo $s; ?>" <?php echo $stage === $s ? 'selected' : ''; ?>><?php echo $s; ?> stage</option>
         <?php endforeach; ?>
     </select>
-    <noscript><button type="submit" class="btn btn-outline-secondary">Filter</button></noscript>
+    <input type="text" name="search" value="<?php echo htmlspecialchars($filters['search']); ?>" class="form-control w-auto" placeholder="Search customer name / mobile / loan account no.">
+    <button type="submit" class="btn btn-outline-secondary">Filter</button>
 </form>
 
 <div class="card border-0 shadow-sm">
@@ -82,6 +83,16 @@
             </tbody>
         </table>
     </div>
+    <?php if ($pagination['last_page'] > 1): ?>
+        <div class="card-footer bg-white">
+            <ul class="pagination pagination-sm mb-0">
+                <?php for ($p = 1; $p <= $pagination['last_page']; $p++): ?>
+                    <li class="page-item <?php echo $p == $pagination['page'] ? 'active' : ''; ?>">
+                        <a class="page-link" href="<?php echo base_url('admin/loan-approvals?' . http_build_query(array_merge($filters, array('page' => $p)))); ?>"><?php echo $p; ?></a>
+                    </li>
+                <?php endfor; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

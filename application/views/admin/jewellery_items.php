@@ -5,12 +5,14 @@
 
 <div class="d-flex justify-content-between mb-3">
     <form method="GET" action="<?php echo base_url('admin/jewellery-items'); ?>" class="d-flex gap-2">
+        <input type="text" name="search" value="<?php echo htmlspecialchars($filters['search']); ?>" class="form-control w-auto" placeholder="Search barcode / name / mobile">
         <select name="status" class="form-select w-auto" onchange="this.form.submit()">
             <option value="">All statuses</option>
             <?php foreach (array('EVALUATED', 'PLEDGED', 'RELEASED', 'AUCTIONED') as $s): ?>
                 <option value="<?php echo $s; ?>" <?php echo $status === $s ? 'selected' : ''; ?>><?php echo $s; ?></option>
             <?php endforeach; ?>
         </select>
+        <button type="submit" class="btn btn-outline-secondary">Filter</button>
     </form>
     <?php if ($can_evaluate): ?>
         <button type="button" class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#evaluateModal"><i class="bi bi-plus-lg"></i> Evaluate New Item</button>
@@ -39,6 +41,17 @@
             </tbody>
         </table>
     </div>
+    <?php if ($pagination['last_page'] > 1): ?>
+        <div class="card-footer bg-white">
+            <ul class="pagination pagination-sm mb-0">
+                <?php for ($p = 1; $p <= $pagination['last_page']; $p++): ?>
+                    <li class="page-item <?php echo $p == $pagination['page'] ? 'active' : ''; ?>">
+                        <a class="page-link" href="<?php echo base_url('admin/jewellery-items?' . http_build_query(array_merge($filters, array('page' => $p)))); ?>"><?php echo $p; ?></a>
+                    </li>
+                <?php endfor; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
 </div>
 
 <?php if ($can_evaluate): ?>
@@ -74,4 +87,3 @@
 </div>
 <?php endif; ?>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

@@ -45,20 +45,29 @@ class Accounts extends Admin_Controller
             }
         }
 
-        $vouchers = $this->vouchers->with_relations(50);
-        foreach ($vouchers as &$v) {
+        $voucher_search = trim((string) $this->input->get('voucher_search'));
+        $voucher_page = max(1, (int) $this->input->get('voucher_page'));
+        $voucher_result = $this->vouchers->with_relations($voucher_search, 15, $voucher_page);
+
+        foreach ($voucher_result['data'] as &$v) {
             $v['details'] = $this->voucher_details->for_voucher($v['id']);
         }
         unset($v);
 
         $this->render('accounting', array(
             'page_title' => 'Accounting',
-            'vouchers' => $vouchers,
+            'vouchers' => $voucher_result['data'],
+            'voucher_pagination' => $voucher_result,
             'gl_accounts' => $this->gl_accounts->all(array(), 'code ASC'),
             'branches' => $this->branches->all(array(), 'name ASC'),
             'customer_mobile' => $customer_mobile,
             'ledger_customer' => $ledger_customer,
             'ledger' => $ledger,
+            'filters' => array(
+                'voucher_search' => $voucher_search,
+                'voucher_page' => $voucher_page,
+                'customer_mobile' => $customer_mobile,
+            ),
         ));
     }
 

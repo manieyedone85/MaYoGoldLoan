@@ -30,11 +30,17 @@ class Jewellery_items extends Admin_Controller
     {
         $status = trim((string) $this->input->get('status'));
         $where = $status !== '' ? array('jewellery_items.status' => $status) : array();
+        $search = trim((string) $this->input->get('search'));
+        $page = max(1, (int) $this->input->get('page'));
+
+        $result = $this->jewellery_items->with_relations($where, $search, 15, $page);
 
         $this->render('jewellery_items', array(
             'page_title' => 'Jewellery Items',
-            'items' => $this->jewellery_items->with_relations($where),
+            'items' => $result['data'],
+            'pagination' => $result,
             'status' => $status,
+            'filters' => array('status' => $status, 'search' => $search),
             'categories' => $this->jewellery_categories->all(array(), 'name ASC'),
             'can_evaluate' => in_array($this->user['role_code'], array('APPRAISER'), true),
         ));

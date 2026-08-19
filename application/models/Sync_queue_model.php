@@ -30,6 +30,14 @@ class Sync_queue_model extends MY_Model
         return array_map(array($this, 'decode'), $rows);
     }
 
+    public function paginate($where = array(), $order_by = null, $per_page = 15, $page = 1, $search = '', array $search_columns = array())
+    {
+        $result = parent::paginate($where, $order_by, $per_page, $page, $search, $search_columns);
+        $result['data'] = array_map(array($this, 'decode'), $result['data']);
+
+        return $result;
+    }
+
     private function decode($row)
     {
         if ($row && isset($row['payload'])) {

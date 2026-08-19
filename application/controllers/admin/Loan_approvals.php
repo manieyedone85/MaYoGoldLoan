@@ -32,23 +32,18 @@ class Loan_approvals extends Admin_Controller
         $role_code = $this->user['role_code'];
         $default_stage = $role_code === 'BRANCH_MANAGER' ? 'MANAGER' : ($role_code === 'REGIONAL_MANAGER' ? 'REGIONAL_MANAGER' : 'APPRAISER');
         $stage = $this->input->get('stage') ?: $default_stage;
+        $search = trim((string) $this->input->get('search'));
+        $page = max(1, (int) $this->input->get('page'));
 
-        $pending = $this->db->select('loans.*, customers.name AS customer_name, customers.mobile AS customer_mobile, branches.name AS branch_name')
-            ->from('loans')
-            ->join('loan_approval_workflows', 'loan_approval_workflows.loan_id = loans.id')
-            ->join('customers', 'customers.id = loans.customer_id', 'left')
-            ->join('branches', 'branches.id = loans.branch_id', 'left')
-            ->where('loan_approval_workflows.current_stage', $stage)
-            ->where('loan_approval_workflows.status', 'PENDING')
-            ->order_by('loans.created_at', 'ASC')
-            ->get()
-            ->result_array();
+        $result = $this->loans->pending_approvals($stage, $search, 15, $page);
 
         $this->render('loan_approvals', array(
             'page_title' => 'Loan Approvals',
-            'pending' => $pending,
+            'pending' => $result['data'],
+            'pagination' => $result,
             'stage' => $stage,
             'stages' => self::$STAGE_ORDER,
+            'filters' => array('stage' => $stage, 'search' => $search),
             'can_override' => in_array($role_code, array('REGIONAL_MANAGER', 'ADMIN'), true),
         ));
     }

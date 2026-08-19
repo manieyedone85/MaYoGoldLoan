@@ -36,10 +36,16 @@ class Inventories extends Admin_Controller
     public function index()
     {
         $branch_id = $this->input->get('branch_id');
+        $search = trim((string) $this->input->get('search'));
+        $page = max(1, (int) $this->input->get('page'));
+
+        $result = $this->gold_packets->with_relations($search, 15, $page);
 
         $this->render('inventory', array(
             'page_title' => 'Inventory',
-            'packets' => $this->gold_packets->with_relations(),
+            'packets' => $result['data'],
+            'pagination' => $result,
+            'filters' => array('search' => $search, 'branch_id' => $branch_id),
             'vaults' => $this->vaults->all(array(), 'name ASC'),
             'branches' => $this->branches->all(array(), 'name ASC'),
             'branch_id' => $branch_id,

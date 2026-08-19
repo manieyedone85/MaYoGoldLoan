@@ -3,7 +3,11 @@
     <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
 <?php endif; ?>
 
-<div class="d-flex justify-content-end mb-3">
+<div class="d-flex justify-content-between mb-3">
+    <form method="GET" action="<?php echo base_url('admin/auctions'); ?>" class="d-flex gap-2">
+        <input type="text" name="search" value="<?php echo htmlspecialchars($filters['search']); ?>" class="form-control w-auto" placeholder="Search branch / status">
+        <button type="submit" class="btn btn-outline-secondary">Filter</button>
+    </form>
     <button type="button" class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#scheduleModal"><i class="bi bi-plus-lg"></i> Schedule Auction</button>
 </div>
 
@@ -25,6 +29,17 @@
             </tbody>
         </table>
     </div>
+    <?php if ($pagination['last_page'] > 1): ?>
+        <div class="card-footer bg-white">
+            <ul class="pagination pagination-sm mb-0">
+                <?php for ($p = 1; $p <= $pagination['last_page']; $p++): ?>
+                    <li class="page-item <?php echo $p == $pagination['page'] ? 'active' : ''; ?>">
+                        <a class="page-link" href="<?php echo base_url('admin/auctions?' . http_build_query(array_merge($filters, array('page' => $p)))); ?>"><?php echo $p; ?></a>
+                    </li>
+                <?php endfor; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
 </div>
 
 <div class="modal fade" id="scheduleModal" tabindex="-1">
@@ -47,4 +62,3 @@
     </div></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
