@@ -39,6 +39,20 @@ class Jewellery_item_model extends MY_Model
         ));
     }
 
+    /** Inverse of mark_pledged() -- used when a loan is cancelled before disbursement so its items become available again. */
+    public function release_pledge($ids)
+    {
+        if (empty($ids)) {
+            return;
+        }
+
+        $this->db->where_in('id', $ids)->update($this->table, array(
+            'loan_id' => null,
+            'status' => 'EVALUATED',
+            'updated_at' => date('Y-m-d H:i:s'),
+        ));
+    }
+
     /**
      * Added by the Disbursement/Renewal/Topup/Interest/PartPayment/Settlement/
      * GoldRelease module owner -- used by Topup::eligibility() and

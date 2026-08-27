@@ -16,6 +16,7 @@ class Gold_rate_model extends MY_Model
             ->where('karat', $karat)
             ->where('status', 'APPROVED')
             ->order_by('effective_date', 'DESC')
+            ->order_by('id', 'DESC')
             ->limit(1)
             ->get()
             ->row_array();

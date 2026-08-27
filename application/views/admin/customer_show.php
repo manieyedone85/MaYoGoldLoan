@@ -1,3 +1,8 @@
+<?php $CI =& get_instance(); $error = $CI->session->flashdata('error'); ?>
+<?php if (! empty($error)): ?>
+    <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
+<?php endif; ?>
+
 <a href="<?php echo base_url('admin/customers'); ?>" class="btn btn-sm btn-outline-secondary mb-3"><i class="bi bi-arrow-left"></i> Back to Customers</a>
 
 <div class="card border-0 shadow-sm mb-3">
@@ -64,7 +69,10 @@
 <div class="row g-3 mt-1">
     <div class="col-md-6">
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white fw-semibold">Aadhaar Verifications</div>
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">Aadhaar Verifications</span>
+                <button type="button" class="btn btn-sm btn-dark" data-bs-toggle="modal" data-bs-target="#aadhaarVerifyModal"><i class="bi bi-plus-lg"></i> Verify</button>
+            </div>
             <div class="table-responsive">
                 <table class="table table-sm mb-0">
                     <thead class="table-light"><tr><th>Method</th><th>Verified</th></tr></thead>
@@ -84,7 +92,10 @@
     </div>
     <div class="col-md-6">
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white fw-semibold">PAN Verifications</div>
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">PAN Verifications</span>
+                <button type="button" class="btn btn-sm btn-dark" data-bs-toggle="modal" data-bs-target="#panVerifyModal"><i class="bi bi-plus-lg"></i> Verify</button>
+            </div>
             <div class="table-responsive">
                 <table class="table table-sm mb-0">
                     <thead class="table-light"><tr><th>PAN</th><th>Verified</th></tr></thead>
@@ -102,4 +113,92 @@
             </div>
         </div>
     </div>
+</div>
+
+<div class="card border-0 shadow-sm mt-3">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">Nominees</span>
+        <button type="button" class="btn btn-sm btn-dark" data-bs-toggle="modal" data-bs-target="#addNomineeModal"><i class="bi bi-plus-lg"></i> Add Nominee</button>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead class="table-light"><tr><th>Name</th><th>Relation</th><th>Mobile</th><th>ID Proof</th></tr></thead>
+            <tbody>
+                <?php if (empty($nominees)): ?>
+                    <tr><td colspan="4" class="text-muted text-center py-3">No nominees added.</td></tr>
+                <?php else: foreach ($nominees as $n): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($n['name']); ?></td>
+                        <td><?php echo htmlspecialchars($n['relation']); ?></td>
+                        <td><?php echo htmlspecialchars($n['mobile'] ?? '—'); ?></td>
+                        <td><?php echo htmlspecialchars(trim(($n['id_proof_type'] ?? '') . ' ' . ($n['id_proof_number'] ?? '')) ?: '—'); ?></td>
+                    </tr>
+                <?php endforeach; endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="addNomineeModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <form method="POST" action="<?php echo base_url('admin/customers/' . $customer['id'] . '/nominee'); ?>">
+            <div class="modal-header"><h5 class="modal-title">Add Nominee</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <input type="text" name="name" class="form-control" maxlength="150" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Relation</label>
+                    <input type="text" name="relation" class="form-control" maxlength="50" placeholder="e.g. Spouse, Son, Daughter" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Mobile (optional)</label>
+                    <input type="text" name="mobile" class="form-control" maxlength="10" pattern="\d{10}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ID Proof Type (optional)</label>
+                    <input type="text" name="id_proof_type" class="form-control" placeholder="e.g. AADHAAR, PAN">
+                </div>
+                <div class="mb-1">
+                    <label class="form-label">ID Proof Number (optional)</label>
+                    <input type="text" name="id_proof_number" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-dark">Add</button></div>
+        </form>
+    </div></div>
+</div>
+
+<div class="modal fade" id="aadhaarVerifyModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <form method="POST" action="<?php echo base_url('admin/customers/' . $customer['id'] . '/aadhaar-verify'); ?>">
+            <div class="modal-header"><h5 class="modal-title">Aadhaar Verification (QR Scan)</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Aadhaar Number</label>
+                    <input type="text" name="aadhaar_number" class="form-control" maxlength="12" pattern="\d{12}" placeholder="12-digit Aadhaar number" required>
+                    <div class="form-text">Only the last 4 digits and a hash are stored -- the full number is never persisted.</div>
+                </div>
+                <div class="mb-1">
+                    <label class="form-label">UIDAI Reference ID (optional)</label>
+                    <input type="text" name="uidai_reference_id" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-dark">Verify</button></div>
+        </form>
+    </div></div>
+</div>
+
+<div class="modal fade" id="panVerifyModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <form method="POST" action="<?php echo base_url('admin/customers/' . $customer['id'] . '/pan-verify'); ?>">
+            <div class="modal-header"><h5 class="modal-title">PAN Verification</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <label class="form-label">PAN Number</label>
+                <input type="text" name="pan_number" class="form-control text-uppercase" maxlength="10" pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}" placeholder="ABCDE1234F" required>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-dark">Verify</button></div>
+        </form>
+    </div></div>
 </div>

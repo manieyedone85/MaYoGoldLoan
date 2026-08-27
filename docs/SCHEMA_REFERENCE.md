@@ -44,9 +44,14 @@ login was added: `User_biometric_ref_model`, `Auth::enroll_biometric()` /
 id, customer_code (unique, e.g. CUST00012345), name, mobile, email (nullable),
 dob (nullable date), gender (nullable), aadhaar_last4 (nullable, 4 chars),
 aadhaar_hash (nullable, SHA-256 — never store full Aadhaar), pan_number (nullable),
-branch_id (FK branches), registered_by (FK users, nullable), kyc_status (default
-PENDING; PENDING/VERIFIED/REJECTED/EXPIRED — plain VARCHAR(20), not a DB enum,
-so EXPIRED needs no migration; set via `PUT /api/v1/customer/{id}/kyc-status`,
+father_name (nullable, added by docs/migrations/2026_08_26_customer_profile_fields.sql),
+profession_type (nullable varchar(30) — plain VARCHAR, not a DB enum, same convention
+as kyc_status/gender; app-enforced values SALARIED/SELF_EMPLOYED/BUSINESS/AGRICULTURE/
+RETIRED/OTHER, see Loans::PROFESSION_TYPES), profession_details (nullable free text),
+income (nullable decimal(12,2)), photo_path (nullable, relative path under
+uploads/customer-photos/), branch_id (FK branches), registered_by (FK users, nullable),
+kyc_status (default PENDING; PENDING/VERIFIED/REJECTED/EXPIRED — plain VARCHAR(20), not
+a DB enum, so EXPIRED needs no migration; set via `PUT /api/v1/customer/{id}/kyc-status`,
 `Customer::update_kyc_status()`), is_blacklisted (bool), timestamps, deleted_at
 (soft delete)
 
@@ -143,8 +148,10 @@ branch_id (FK branches), loan_product_id (FK loan_products), eligible_amount (de
 processing_fee (decimal 10,2, default 0), gst_amount (decimal 10,2, default 0),
 insurance_amount (decimal 10,2, default 0), net_disbursed_amount (nullable decimal
 12,2), loan_date (date), due_date (date), status (default DRAFT — one of DRAFT,
-PENDING_APPROVAL, APPROVED, REJECTED, DISBURSED, ACTIVE, RENEWED, PART_PAID, SETTLED,
-NPA, AUCTION_ELIGIBLE, AUCTIONED, CLOSED), created_by (FK users), timestamps
+PENDING_APPROVAL, APPROVED, REJECTED, CANCELLED, DISBURSED, ACTIVE, RENEWED, PART_PAID,
+SETTLED, NPA, AUCTION_ELIGIBLE, AUCTIONED, CLOSED — CANCELLED is CI3-admin-only, not
+present in the parent Laravel app: set by admin/Loans::cancel(), only reachable from
+DRAFT/PENDING_APPROVAL/APPROVED i.e. before disbursement), created_by (FK users), timestamps
 
 ## loan_documents
 id, loan_id (FK loans), document_type (default AGREEMENT; AGREEMENT/SANCTION_LETTER/

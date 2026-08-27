@@ -66,6 +66,7 @@ class Loan_model extends MY_Model
             ->group_start()
                 ->like('loans.loan_account_number', $query)
                 ->or_like('customers.mobile', $query)
+                ->or_like('customers.name', $query)
             ->group_end()
             ->order_by('loans.id', 'DESC')
             ->limit($limit)

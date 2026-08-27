@@ -15,7 +15,7 @@ class Kyc extends Admin_Controller
     public function __construct()
     {
         parent::__construct();
-        $this->require_admin_role(array('BRANCH_EXECUTIVE', 'BRANCH_MANAGER', 'REGIONAL_MANAGER'));
+        $this->require_admin_role(array('ADMIN', 'BRANCH_EXECUTIVE', 'BRANCH_MANAGER', 'REGIONAL_MANAGER'));
 
         $this->load->model('Customer_model', 'customers');
         $this->load->model('Kyc_document_type_model', 'document_types');
@@ -38,15 +38,15 @@ class Kyc extends Admin_Controller
             'pagination' => $result,
             'filters' => array('status' => $status, 'search' => $search),
             'document_types' => $this->document_types->all(array(), 'name ASC'),
-            'can_upload' => in_array($this->user['role_code'], array('BRANCH_EXECUTIVE', 'BRANCH_MANAGER'), true),
-            'can_verify' => in_array($this->user['role_code'], array('BRANCH_MANAGER', 'REGIONAL_MANAGER'), true),
+            'can_upload' => in_array($this->user['role_code'], array('ADMIN', 'BRANCH_EXECUTIVE', 'BRANCH_MANAGER'), true),
+            'can_verify' => in_array($this->user['role_code'], array('ADMIN', 'BRANCH_MANAGER', 'REGIONAL_MANAGER'), true),
         ));
     }
 
     /** POST /admin/kyc/upload -- role BRANCH_EXECUTIVE/BRANCH_MANAGER */
     public function upload()
     {
-        if (! $this->require_admin_role(array('BRANCH_EXECUTIVE', 'BRANCH_MANAGER'))) {
+        if (! $this->require_admin_role(array('ADMIN', 'BRANCH_EXECUTIVE', 'BRANCH_MANAGER'))) {
             return;
         }
 
@@ -103,7 +103,7 @@ class Kyc extends Admin_Controller
     /** POST /admin/kyc/(:num)/verify -- role BRANCH_MANAGER/REGIONAL_MANAGER */
     public function verify($id)
     {
-        if (! $this->require_admin_role(array('BRANCH_MANAGER', 'REGIONAL_MANAGER'))) {
+        if (! $this->require_admin_role(array('ADMIN', 'BRANCH_MANAGER', 'REGIONAL_MANAGER'))) {
             return;
         }
 

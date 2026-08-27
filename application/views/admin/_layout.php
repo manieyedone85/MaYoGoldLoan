@@ -8,8 +8,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body { background: #f4f6f9; }
-        .admin-sidebar { min-height: 100vh; background: #1e2a38; overflow-y: auto; }
-        .admin-sidebar a { color: #c9d3dc; }
+        .admin-sidebar { min-height: 100vh; width: 260px; flex: 0 0 260px; background: #1e2a38; overflow-y: auto; }
+        .admin-sidebar a { color: #c9d3dc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .admin-sidebar a.active, .admin-sidebar a:hover { color: #fff; background: #2b3b4e; }
         .admin-sidebar .brand { color: #fff; }
         .admin-sidebar .nav-group-toggle { color: #c9d3dc; cursor: pointer; }
@@ -76,13 +76,13 @@
                     array('path' => 'admin/auctions', 'icon' => 'bi-hammer', 'label' => 'Auctions', 'roles' => array('BRANCH_MANAGER', 'REGIONAL_MANAGER')),
                 ),
             ),
-            /*array(
+            array(
                 'group' => 'Finance', 'icon' => 'bi-journal-text',
                 'items' => array(
                     array('path' => 'admin/accounting', 'icon' => 'bi-journal-text', 'label' => 'Accounting', 'roles' => array('FINANCE')),
                     array('path' => 'admin/reports', 'icon' => 'bi-bar-chart', 'label' => 'Reports', 'roles' => null),
                 ),
-            ),*/
+            ),
             array(
                 'group' => 'Administration', 'icon' => 'bi-gear',
                 'items' => array(
@@ -97,7 +97,7 @@
             return $role_code === 'ADMIN' || $item['roles'] === null || in_array($role_code, $item['roles'], true);
         };
     ?>
-    <nav class="admin-sidebar p-3" style="width:250px;">
+    <nav class="admin-sidebar p-3">
         <div class="brand fs-5 fw-semibold mb-4"><i class="bi bi-gem"></i> Gold Loan Admin</div>
         <div class="nav flex-column gap-1">
             <?php foreach ($nav_items as $g => $entry): ?>

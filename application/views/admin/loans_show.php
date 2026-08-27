@@ -1,5 +1,8 @@
 <a href="<?php echo base_url('admin/loans'); ?>" class="btn btn-sm btn-outline-secondary mb-3"><i class="bi bi-arrow-left"></i> Back to Loans</a>
 <a href="<?php echo base_url('admin/loans/' . $loan['id'] . '/receipt'); ?>" class="btn btn-sm btn-outline-dark mb-3" target="_blank"><i class="bi bi-receipt"></i> Pledge Receipt</a>
+<?php if ($can_cancel): ?>
+    <button type="button" class="btn btn-sm btn-outline-danger mb-3" data-bs-toggle="modal" data-bs-target="#cancelLoanModal"><i class="bi bi-x-circle"></i> Cancel Loan</button>
+<?php endif; ?>
 
 <?php $CI =& get_instance(); $error = $CI->session->flashdata('error'); ?>
 <?php if (! empty($error)): ?>
@@ -115,6 +118,7 @@
                         <select name="document_type" class="form-select form-select-sm">
                             <option value="AGREEMENT">Agreement</option>
                             <option value="SANCTION_LETTER">Sanction Letter</option>
+                            <option value="JEWELLERY_PHOTO">Jewellery Photo</option>
                             <option value="OTHER">Other</option>
                         </select>
                     </div>
@@ -159,3 +163,19 @@
         </div>
     </div>
 </div>
+
+<?php if ($can_cancel): ?>
+<div class="modal fade" id="cancelLoanModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <form method="POST" action="<?php echo base_url('admin/loans/' . $loan['id'] . '/cancel'); ?>">
+            <div class="modal-header"><h5 class="modal-title">Cancel Loan</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <p class="text-muted small">This cancels the loan before disbursement and releases its pledged jewellery items back to available. This cannot be undone.</p>
+                <label class="form-label">Reason</label>
+                <textarea name="remarks" class="form-control" rows="3" required></textarea>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button><button type="submit" class="btn btn-danger">Cancel Loan</button></div>
+        </form>
+    </div></div>
+</div>
+<?php endif; ?>
