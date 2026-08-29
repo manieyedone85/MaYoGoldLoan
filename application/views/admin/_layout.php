@@ -149,6 +149,157 @@
         <?php $CI->load->view($content_view, $view_data); ?>
     </main>
 </div>
+
+<!--
+    Shared webcam-capture modal. Any button anywhere in the admin panel can
+    trigger it with data-capture-target="<file input id>" (and optionally
+    data-capture-parent-modal="<modal id>" if the button lives inside another
+    Bootstrap modal, which gets hidden/reshown around the capture flow since
+    Bootstrap doesn't stack modals well). On "Use Photo" it turns the camera
+    frame into a File and assigns it to the target <input type="file"> via
+    DataTransfer -- multi-file inputs get the capture appended, not replaced
+    -- so every existing upload form/controller works completely unchanged.
+-->
+<div class="modal fade" id="cameraCaptureModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Capture Photo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="cameraCaptureError" class="alert alert-danger d-none"></div>
+                <video id="cameraCaptureVideo" autoplay playsinline muted class="w-100 rounded bg-dark" style="max-height:360px;"></video>
+                <img id="cameraCapturePreview" class="w-100 rounded d-none" style="max-height:360px;object-fit:contain;" alt="Captured preview">
+                <canvas id="cameraCaptureCanvas" class="d-none"></canvas>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" id="cameraCaptureShootBtn" class="btn btn-dark"><i class="bi bi-camera-fill"></i> Capture</button>
+                <button type="button" id="cameraCaptureRetakeBtn" class="btn btn-outline-secondary d-none"><i class="bi bi-arrow-counterclockwise"></i> Retake</button>
+                <button type="button" id="cameraCaptureUseBtn" class="btn btn-success d-none"><i class="bi bi-check-lg"></i> Use Photo</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function () {
+    var modalEl = document.getElementById('cameraCaptureModal');
+    if (! modalEl || ! window.bootstrap) return;
+
+    var video = document.getElementById('cameraCaptureVideo');
+    var preview = document.getElementById('cameraCapturePreview');
+    var canvas = document.getElementById('cameraCaptureCanvas');
+    var errorBox = document.getElementById('cameraCaptureError');
+    var shootBtn = document.getElementById('cameraCaptureShootBtn');
+    var retakeBtn = document.getElementById('cameraCaptureRetakeBtn');
+    var useBtn = document.getElementById('cameraCaptureUseBtn');
+    var modal = new bootstrap.Modal(modalEl);
+
+    var stream = null;
+    var targetInput = null;
+    var parentModalEl = null;
+
+    function stopStream() {
+        if (stream) {
+            stream.getTracks().forEach(function (t) { t.stop(); });
+            stream = null;
+        }
+    }
+
+    function resetView() {
+        video.classList.remove('d-none');
+        preview.classList.add('d-none');
+        shootBtn.classList.remove('d-none');
+        shootBtn.disabled = false;
+        retakeBtn.classList.add('d-none');
+        useBtn.classList.add('d-none');
+        errorBox.classList.add('d-none');
+    }
+
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-capture-target]');
+        if (! btn) return;
+        e.preventDefault();
+
+        targetInput = document.getElementById(btn.getAttribute('data-capture-target'));
+        if (! targetInput) return;
+
+        var parentModalId = btn.getAttribute('data-capture-parent-modal');
+        parentModalEl = parentModalId ? document.getElementById(parentModalId) : null;
+        if (parentModalEl) {
+            var parentInstance = bootstrap.Modal.getInstance(parentModalEl);
+            if (parentInstance) parentInstance.hide();
+        }
+
+        resetView();
+        modal.show();
+    });
+
+    modalEl.addEventListener('shown.bs.modal', function () {
+        if (! navigator.mediaDevices || ! navigator.mediaDevices.getUserMedia) {
+            errorBox.textContent = 'Camera access is not available in this browser. Please use the file picker instead.';
+            errorBox.classList.remove('d-none');
+            shootBtn.disabled = true;
+            return;
+        }
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }).then(function (s) {
+            stream = s;
+            video.srcObject = s;
+        }).catch(function (err) {
+            errorBox.textContent = 'Could not access the camera (' + err.message + '). Please allow camera access, or use the file picker instead.';
+            errorBox.classList.remove('d-none');
+            shootBtn.disabled = true;
+        });
+    });
+
+    modalEl.addEventListener('hidden.bs.modal', function () {
+        stopStream();
+        var reshow = parentModalEl;
+        parentModalEl = null;
+        targetInput = null;
+        if (reshow) {
+            bootstrap.Modal.getOrCreateInstance(reshow).show();
+        }
+    });
+
+    shootBtn.addEventListener('click', function () {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        preview.src = canvas.toDataURL('image/jpeg', 0.92);
+
+        video.classList.add('d-none');
+        preview.classList.remove('d-none');
+        shootBtn.classList.add('d-none');
+        retakeBtn.classList.remove('d-none');
+        useBtn.classList.remove('d-none');
+    });
+
+    retakeBtn.addEventListener('click', resetView);
+
+    useBtn.addEventListener('click', function () {
+        if (! targetInput) { modal.hide(); return; }
+
+        canvas.toBlob(function (blob) {
+            if (! blob) { modal.hide(); return; }
+
+            var file = new File([blob], 'capture-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+            var dt = new DataTransfer();
+            if (targetInput.multiple && targetInput.files) {
+                for (var i = 0; i < targetInput.files.length; i++) {
+                    dt.items.add(targetInput.files[i]);
+                }
+            }
+            dt.items.add(file);
+            targetInput.files = dt.files;
+            targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+            modal.hide();
+        }, 'image/jpeg', 0.92);
+    });
+})();
+</script>
 </body>
 </html>

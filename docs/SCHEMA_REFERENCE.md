@@ -271,7 +271,7 @@ bidder_id (FK auction_bidders), bid_amount (decimal 12,2), timestamps
 id, gold_packet_id (FK gold_packets), bidder_id (FK auction_bidders), winning_amount
 (decimal 12,2), timestamps
 
-## auction_settlements
+## auction_settlement
 id, loan_id (FK loans), gold_packet_id (FK gold_packets), outstanding_loan_amount
 (decimal 12,2), auction_amount (decimal 12,2), remaining_balance_to_customer (decimal
 12,2, default 0), settled_by (FK users), timestamps

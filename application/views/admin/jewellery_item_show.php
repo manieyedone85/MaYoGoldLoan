@@ -63,8 +63,9 @@
             </div>
             <div class="card-footer bg-white">
                 <form method="POST" action="<?php echo base_url('admin/jewellery-items/' . $item['id'] . '/image'); ?>" enctype="multipart/form-data" class="d-flex gap-2">
-                    <input type="file" name="image" class="form-control" accept="image/*" required>
-                    <button type="submit" class="btn btn-outline-dark">Upload</button>
+                    <input type="file" name="image" id="jewelleryImageFileInput" class="form-control" accept="image/*" required>
+                    <button type="button" class="btn btn-outline-secondary text-nowrap" data-capture-target="jewelleryImageFileInput"><i class="bi bi-camera"></i> Capture</button>
+                    <button type="submit" class="btn btn-outline-dark text-nowrap">Upload</button>
                 </form>
             </div>
         </div>

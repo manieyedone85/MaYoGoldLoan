@@ -303,6 +303,25 @@ class Loans extends Admin_Controller
      * into the flat ['name'=>..,'tmp_name'=>..,...] shape CI's upload
      * library expects. Returns null if no file was submitted at that index.
      */
+    /**
+     * $this->load->library('upload', $config) only applies $config the FIRST
+     * time the library is loaded in a request -- CI3's loader sees CI_Upload
+     * already declared and returns early ("class already loaded. Second
+     * attempt ignored.", Loader::_ci_load_stock_library()), silently keeping
+     * whatever config the first call set. store() loads it twice in one
+     * request (cust_photo, then once per jewellery photo) with two different
+     * upload_path values, so the second+ calls were uploading jewellery
+     * photos into uploads/customer-photos/ while the DB row still recorded
+     * uploads/loan-documents/ -- files saved, links 404. Loading once and
+     * re-initializing explicitly every time guarantees $config actually
+     * takes effect.
+     */
+    private function _configure_upload(array $config)
+    {
+        $this->load->library('upload');
+        $this->upload->initialize($config, true);
+    }
+
     private function _multi_file($field, $idx)
     {
         if (empty($_FILES[$field]['name'][$idx])) {
@@ -601,7 +620,7 @@ class Loans extends Admin_Controller
                 mkdir($upload_dir, 0775, true);
             }
 
-            $this->load->library('upload', array(
+            $this->_configure_upload(array(
                 'upload_path' => $upload_dir,
                 'allowed_types' => 'jpg|jpeg|png|webp',
                 'max_size' => 5120,
@@ -642,7 +661,7 @@ class Loans extends Admin_Controller
             }
 
             $_FILES['jewellery_photo_upload'] = $jphoto;
-            $this->load->library('upload', array(
+            $this->_configure_upload(array(
                 'upload_path' => $upload_dir,
                 'allowed_types' => 'jpg|jpeg|png|gif|webp',
                 'max_size' => 5120,

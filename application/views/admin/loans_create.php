@@ -84,7 +84,10 @@ $old_items = ! empty($old['items']) && is_array($old['items']) ? array_values($o
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Customer Photo</label>
-                    <input type="file" name="cust_photo" class="form-control" accept=".jpg,.jpeg,.png,.webp">
+                    <div class="d-flex gap-2">
+                        <input type="file" name="cust_photo" id="custPhotoFileInput" class="form-control" accept=".jpg,.jpeg,.png,.webp">
+                        <button type="button" class="btn btn-outline-secondary text-nowrap" data-capture-target="custPhotoFileInput"><i class="bi bi-camera"></i></button>
+                    </div>
                 </div>
                 <div class="col-md-8">
                     <label class="form-label">Address Line 1 <span class="text-danger">*</span></label>
@@ -234,8 +237,11 @@ $old_items = ! empty($old['items']) && is_array($old['items']) ? array_values($o
         <div class="card-header bg-white fw-semibold">Jewellery Photos</div>
         <div class="card-body">
             <label class="form-label">Photos of the pledged jewellery</label>
-            <input type="file" name="jewellery_photos[]" class="form-control" accept=".jpg,.jpeg,.png,.gif,.webp" multiple>
-            <div class="form-text">Optional. One or more photos covering the whole pledge (not per item) -- stored against the loan, viewable from the loan's Documents section.</div>
+            <div class="d-flex gap-2">
+                <input type="file" name="jewellery_photos[]" id="jewelleryPhotosFileInput" class="form-control" accept=".jpg,.jpeg,.png,.gif,.webp" multiple>
+                <button type="button" class="btn btn-outline-secondary text-nowrap" data-capture-target="jewelleryPhotosFileInput"><i class="bi bi-camera"></i> Capture</button>
+            </div>
+            <div class="form-text">Optional. One or more photos covering the whole pledge (not per item) -- stored against the loan, viewable from the loan's Documents section. Capture adds to whatever's already chosen.</div>
         </div>
     </div>
 

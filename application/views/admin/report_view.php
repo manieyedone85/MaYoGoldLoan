@@ -37,6 +37,13 @@
                 <input type="text" name="entity_type" value="<?php echo htmlspecialchars($filters['entity_type']); ?>" class="form-control form-control-sm" placeholder="e.g. Loan">
             </div>
         <?php endif; ?>
+        <?php if (in_array('opening_balance', $def['filters'], true)): ?>
+            <div class="col-auto">
+                <label class="form-label small mb-0">Opening Balance Override</label>
+                <input type="number" step="0.01" name="opening_balance" value="<?php echo htmlspecialchars($filters['opening_balance']); ?>" class="form-control form-control-sm" placeholder="Auto">
+                <div class="form-text" style="font-size:10px">Leave blank to auto-carry the balance forward from history.</div>
+            </div>
+        <?php endif; ?>
         <div class="col-auto">
             <button type="submit" class="btn btn-sm btn-outline-secondary">Apply</button>
         </div>

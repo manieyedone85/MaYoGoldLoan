@@ -43,7 +43,7 @@ class User_model extends MY_Model
 
         $build = function () use ($search, $customer_role) {
             $query = $this->db->from('user_master')
-                ->join('roles', 'roles.id = user_master.role_id', 'left')
+                ->join('role_master', 'role_master.id = user_master.role_id', 'left')
                 ->join('branches', 'branches.id = user_master.branch_id', 'left');
 
             if ($customer_role) {
@@ -63,7 +63,7 @@ class User_model extends MY_Model
         $total = $build()->count_all_results();
 
         $data = $build()
-            ->select('user_master.*, roles.name AS role_name, branches.name AS branch_name')
+            ->select('user_master.*, role_master.name AS role_name, branches.name AS branch_name')
             ->order_by('user_master.name', 'ASC')
             ->limit($per_page, ($page - 1) * $per_page)
             ->get()

@@ -3,6 +3,7 @@ $groups = array(
     'Operational' => array('loan_status', 'overdue_emi', 'daily_cash', 'daily_collection', 'jewellery_release'),
     'Performance & KPIs' => array('kpi_summary', 'branch_performance', 'employee_performance', 'renewal_topup_reloan'),
     'Compliance & Tax' => array('gst_summary', 'processing_fee_summary', 'audit_activity'),
+    'Financial' => array('revenue_ledger'),
 );
 ?>
 <p class="text-muted">Pick a report to filter, view, and download it as Excel.</p>

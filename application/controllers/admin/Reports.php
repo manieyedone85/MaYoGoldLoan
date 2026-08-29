@@ -43,6 +43,7 @@ class Reports extends Admin_Controller
         'jewellery_release' => array('label' => 'Jewellery Release', 'description' => 'Jewellery items released back to customers over a period.', 'filters' => array('branch', 'period')),
         'gst_summary' => array('label' => 'GST Summary (Tax Filing)', 'description' => 'GST charged on loan processing fees, grouped by branch GSTIN.', 'filters' => array('branch', 'period')),
         'processing_fee_summary' => array('label' => 'Processing Fee Income', 'description' => 'Processing fee charged on loans -- company income, grouped by branch.', 'filters' => array('branch', 'period')),
+        'revenue_ledger' => array('label' => 'Shop Revenue / Ledger', 'description' => 'Interest collected, fines, processing fees, disbursements, and settlements as one dated credit/debit ledger with opening and closing balance.', 'filters' => array('branch', 'period', 'opening_balance')),
         'audit_activity' => array('label' => 'Audit / User Activity', 'description' => 'Create/update/approve/reject actions logged over a period.', 'filters' => array('period', 'entity_type', 'paginated')),
     );
 
@@ -122,6 +123,11 @@ class Reports extends Admin_Controller
         if (in_array('entity_type', $needed, true)) {
             $filters['entity_type'] = trim((string) $this->input->get('entity_type'));
         }
+        if (in_array('opening_balance', $needed, true)) {
+            // Blank means "auto-derive from history" -- see Report_model::revenue_ledger(). Kept as a
+            // string here (not cast to float) so the view can tell "blank" apart from "typed 0".
+            $filters['opening_balance'] = trim((string) $this->input->get('opening_balance'));
+        }
         if (in_array('paginated', $needed, true)) {
             $filters['page'] = max(1, (int) $this->input->get('page'));
         }
@@ -144,6 +150,7 @@ class Reports extends Admin_Controller
         $from = $filters['from'] ?? date('Y-m-d', strtotime('-30 days'));
         $to = $filters['to'] ?? date('Y-m-d');
         $entity_type = ! empty($filters['entity_type']) ? $filters['entity_type'] : null;
+        $opening_balance = ($filters['opening_balance'] ?? '') !== '' ? (float) $filters['opening_balance'] : null;
 
         switch ($code) {
             case 'loan_status':
@@ -311,6 +318,24 @@ class Reports extends Admin_Controller
                 return array(
                     array('title' => 'Processing Fee Income by Branch', 'headers' => array('Branch', 'Count', 'Total Processing Fee'), 'rows' => $summary_rows),
                     array('title' => 'Processing Fee Detail', 'headers' => array('Date', 'Loan A/C', 'Customer', 'Branch', 'Processing Fee Amount'), 'rows' => $detail_rows),
+                );
+
+            case 'revenue_ledger':
+                $d = $this->reports->revenue_ledger($branch_id, $from, $to, $opening_balance);
+                $summary_rows = array(
+                    array($d['opening_balance_auto'] ? 'Opening Balance (auto, from history)' : 'Opening Balance (manual)', $d['opening_balance']),
+                    array('Total Credit', $d['total_credit']),
+                    array('Total Debit', $d['total_debit']),
+                    array('Closing Balance', $d['closing_balance']),
+                );
+                $detail_rows = array();
+                foreach ($d['data'] as $r) {
+                    $detail_rows[] = array($r['date'], $r['particulars'], $r['loan_account_number'] ?? 'Pending disbursement', $r['reference'], $r['debit'] ?: '', $r['credit'] ?: '', $r['running_balance']);
+                }
+
+                return array(
+                    array('title' => 'Revenue Ledger Summary', 'headers' => array('Metric', 'Value'), 'rows' => $summary_rows),
+                    array('title' => 'Ledger Detail', 'headers' => array('Date', 'Particulars', 'Loan A/C', 'Reference', 'Debit', 'Credit', 'Running Balance'), 'rows' => $detail_rows),
                 );
 
             default:

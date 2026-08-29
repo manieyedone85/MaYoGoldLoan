@@ -569,6 +569,193 @@ class Report_model extends MY_Model
         );
     }
 
+    /**
+     * Consolidated shop revenue ledger -- interest collected, fines
+     * (LATE_FEE), processing fees, loan disbursements (outflow), and auction
+     * settlements, as one dated credit/debit ledger with a running balance.
+     *
+     * $opening_balance defaults to null, which auto-derives it as the net
+     * (credit - debit) of every one of these same transactions that happened
+     * before the period started -- so it carries forward day to day on its
+     * own instead of being retyped, and comes out to 0 the first time (no
+     * history yet). No running balance is persisted anywhere in this schema
+     * (cash_books exists but nothing writes to it), so this is recomputed
+     * from source each call rather than read off a stored total. Passing an
+     * explicit $opening_balance overrides the derived figure, for
+     * reconciling against physical cash-in-hand.
+     */
+    public function revenue_ledger($branch_id, $from, $to, $opening_balance = null)
+    {
+        list($from, $to, $start, $end) = $this->_period_range($from, $to);
+
+        $entries = $this->_revenue_entries($branch_id, $start, $end);
+
+        $opening_balance_auto = $opening_balance === null;
+        if ($opening_balance_auto) {
+            $before = $this->_revenue_net($branch_id, $start);
+            $opening_balance = $before['credit'] - $before['debit'];
+        }
+
+        $balance = (float) $opening_balance;
+        $total_credit = 0.0;
+        $total_debit = 0.0;
+        foreach ($entries as &$entry) {
+            $balance += $entry['credit'] - $entry['debit'];
+            $entry['running_balance'] = round($balance, 2);
+            $total_credit += $entry['credit'];
+            $total_debit += $entry['debit'];
+        }
+        unset($entry);
+
+        return array(
+            'branch_id' => $branch_id,
+            'from' => $from,
+            'to' => $to,
+            'opening_balance' => round((float) $opening_balance, 2),
+            'opening_balance_auto' => $opening_balance_auto,
+            'total_credit' => round($total_credit, 2),
+            'total_debit' => round($total_debit, 2),
+            'closing_balance' => round($balance, 2),
+            'count' => count($entries),
+            'data' => $entries,
+        );
+    }
+
+    /** revenue_ledger()'s transaction rows for [$start, $end), sorted by date -- see that method's docblock for the source list. */
+    private function _revenue_entries($branch_id, $start, $end)
+    {
+        $entries = array();
+
+        $query = $this->db->select('interest_collections.amount, interest_collections.created_at, interest_collections.receipt_number, loans.loan_account_number, loans.branch_id')
+            ->from('interest_collections')
+            ->join('loans', 'loans.id = interest_collections.loan_id', 'left')
+            ->where('interest_collections.created_at >=', $start)
+            ->where('interest_collections.created_at <', $end);
+        if ($branch_id) {
+            $query->where('loans.branch_id', $branch_id);
+        }
+        foreach ($query->get()->result_array() as $r) {
+            $entries[] = array(
+                'date' => $r['created_at'], 'particulars' => 'Interest Collection', 'reference' => $r['receipt_number'],
+                'loan_account_number' => $r['loan_account_number'], 'branch_id' => $r['branch_id'],
+                'type' => 'CREDIT', 'debit' => 0.0, 'credit' => (float) $r['amount'],
+            );
+        }
+
+        $query = $this->db->select('loan_charges.charge_type, loan_charges.amount, loan_charges.created_at, loans.loan_account_number, loans.branch_id')
+            ->from('loan_charges')
+            ->join('loans', 'loans.id = loan_charges.loan_id', 'left')
+            ->where_in('loan_charges.charge_type', array('LATE_FEE', 'PROCESSING_FEE'))
+            ->where('loan_charges.created_at >=', $start)
+            ->where('loan_charges.created_at <', $end);
+        if ($branch_id) {
+            $query->where('loans.branch_id', $branch_id);
+        }
+        foreach ($query->get()->result_array() as $r) {
+            $entries[] = array(
+                'date' => $r['created_at'],
+                'particulars' => $r['charge_type'] === 'LATE_FEE' ? 'Fine / Late Fee' : 'Processing Fee',
+                'reference' => null, 'loan_account_number' => $r['loan_account_number'], 'branch_id' => $r['branch_id'],
+                'type' => 'CREDIT', 'debit' => 0.0, 'credit' => (float) $r['amount'],
+            );
+        }
+
+        $query = $this->db->select('loan_disbursements.amount, loan_disbursements.created_at, loan_disbursements.reference_number, loans.loan_account_number, loans.branch_id')
+            ->from('loan_disbursements')
+            ->join('loans', 'loans.id = loan_disbursements.loan_id', 'left')
+            ->where('loan_disbursements.status', 'COMPLETED')
+            ->where('loan_disbursements.created_at >=', $start)
+            ->where('loan_disbursements.created_at <', $end);
+        if ($branch_id) {
+            $query->where('loans.branch_id', $branch_id);
+        }
+        foreach ($query->get()->result_array() as $r) {
+            $entries[] = array(
+                'date' => $r['created_at'], 'particulars' => 'Loan Disbursement', 'reference' => $r['reference_number'],
+                'loan_account_number' => $r['loan_account_number'], 'branch_id' => $r['branch_id'],
+                'type' => 'DEBIT', 'debit' => (float) $r['amount'], 'credit' => 0.0,
+            );
+        }
+
+        $query = $this->db->select('auction_settlement.outstanding_loan_amount, auction_settlement.remaining_balance_to_customer, auction_settlement.created_at, loans.loan_account_number, loans.branch_id')
+            ->from('auction_settlement')
+            ->join('loans', 'loans.id = auction_settlement.loan_id', 'left')
+            ->where('auction_settlement.created_at >=', $start)
+            ->where('auction_settlement.created_at <', $end);
+        if ($branch_id) {
+            $query->where('loans.branch_id', $branch_id);
+        }
+        foreach ($query->get()->result_array() as $r) {
+            $entries[] = array(
+                'date' => $r['created_at'], 'particulars' => 'Auction Settlement (Recovered)', 'reference' => null,
+                'loan_account_number' => $r['loan_account_number'], 'branch_id' => $r['branch_id'],
+                'type' => 'CREDIT', 'debit' => 0.0, 'credit' => (float) $r['outstanding_loan_amount'],
+            );
+            if ((float) $r['remaining_balance_to_customer'] > 0) {
+                $entries[] = array(
+                    'date' => $r['created_at'], 'particulars' => 'Auction Settlement (Refund to Customer)', 'reference' => null,
+                    'loan_account_number' => $r['loan_account_number'], 'branch_id' => $r['branch_id'],
+                    'type' => 'DEBIT', 'debit' => (float) $r['remaining_balance_to_customer'], 'credit' => 0.0,
+                );
+            }
+        }
+
+        usort($entries, function ($a, $b) {
+            return strcmp($a['date'], $b['date']);
+        });
+
+        return $entries;
+    }
+
+    /** Net (credit/debit totals) of every revenue_ledger() source strictly before $before -- the auto-derived opening balance. */
+    private function _revenue_net($branch_id, $before)
+    {
+        $credit = 0.0;
+        $debit = 0.0;
+
+        $query = $this->db->select('COALESCE(SUM(interest_collections.amount),0) AS total', false)
+            ->from('interest_collections')
+            ->join('loans', 'loans.id = interest_collections.loan_id', 'left')
+            ->where('interest_collections.created_at <', $before);
+        if ($branch_id) {
+            $query->where('loans.branch_id', $branch_id);
+        }
+        $credit += (float) $query->get()->row_array()['total'];
+
+        $query = $this->db->select('COALESCE(SUM(loan_charges.amount),0) AS total', false)
+            ->from('loan_charges')
+            ->join('loans', 'loans.id = loan_charges.loan_id', 'left')
+            ->where_in('loan_charges.charge_type', array('LATE_FEE', 'PROCESSING_FEE'))
+            ->where('loan_charges.created_at <', $before);
+        if ($branch_id) {
+            $query->where('loans.branch_id', $branch_id);
+        }
+        $credit += (float) $query->get()->row_array()['total'];
+
+        $query = $this->db->select('COALESCE(SUM(loan_disbursements.amount),0) AS total', false)
+            ->from('loan_disbursements')
+            ->join('loans', 'loans.id = loan_disbursements.loan_id', 'left')
+            ->where('loan_disbursements.status', 'COMPLETED')
+            ->where('loan_disbursements.created_at <', $before);
+        if ($branch_id) {
+            $query->where('loans.branch_id', $branch_id);
+        }
+        $debit += (float) $query->get()->row_array()['total'];
+
+        $query = $this->db->select('COALESCE(SUM(auction_settlement.outstanding_loan_amount),0) AS credit_total, COALESCE(SUM(auction_settlement.remaining_balance_to_customer),0) AS debit_total', false)
+            ->from('auction_settlement')
+            ->join('loans', 'loans.id = auction_settlement.loan_id', 'left')
+            ->where('auction_settlement.created_at <', $before);
+        if ($branch_id) {
+            $query->where('loans.branch_id', $branch_id);
+        }
+        $row = $query->get()->row_array();
+        $credit += (float) $row['credit_total'];
+        $debit += (float) $row['debit_total'];
+
+        return array('credit' => $credit, 'debit' => $debit);
+    }
+
     private function _normalize_date($date)
     {
         return ($date && strtotime($date) !== false) ? date('Y-m-d', strtotime($date)) : date('Y-m-d');

@@ -188,8 +188,11 @@
             <div class="modal-body">
                 <div class="mb-1">
                     <label class="form-label">Photo</label>
-                    <input type="file" name="photo" class="form-control" accept=".jpg,.jpeg,.png,.webp" required>
-                    <div class="form-text">JPG, JPEG, PNG, or WEBP. Max 5MB.</div>
+                    <div class="d-flex gap-2">
+                        <input type="file" name="photo" id="updatePhotoFileInput" class="form-control" accept=".jpg,.jpeg,.png,.webp" required>
+                        <button type="button" class="btn btn-outline-secondary text-nowrap" data-capture-target="updatePhotoFileInput" data-capture-parent-modal="updatePhotoModal"><i class="bi bi-camera"></i> Capture</button>
+                    </div>
+                    <div class="form-text">JPG, JPEG, PNG, or WEBP. Max 5MB. Choose a file or capture one with your camera.</div>
                 </div>
             </div>
             <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-dark">Upload</button></div>
