@@ -68,9 +68,9 @@ class Disbursement extends Api_Controller
             return json_error('mode is required and must be one of ' . implode(',', $allowed_codes) . '.');
         }
 
-        if ($mode['code'] === 'CASH' && (float) $loan['net_disbursed_amount'] > self::CASH_LIMIT) {
+        /*if ($mode['code'] === 'CASH' && (float) $loan['net_disbursed_amount'] > self::CASH_LIMIT) {
             return json_error('Cash disbursement above the regulatory limit is not permitted. Use a bank transfer mode.');
-        }
+        }*/
 
         $this->db->trans_start();
 

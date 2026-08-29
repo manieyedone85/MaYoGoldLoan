@@ -18,7 +18,7 @@ class Loan_model extends MY_Model
      */
     public function loan_account_number_for_id($id)
     {
-        return 'LGH001' . str_pad((string) $id, 9, '0', STR_PAD_LEFT);
+        return 'AF001' . str_pad((string) $id, 9, '0', STR_PAD_LEFT);
     }
 
     /**

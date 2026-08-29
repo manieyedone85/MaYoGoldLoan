@@ -114,7 +114,13 @@
                             <td><?php echo htmlspecialchars($product['name']); ?></td>
                             <td><?php echo number_format($product['interest_rate_pct'], 2); ?>% <span class="text-muted small"><?php echo htmlspecialchars($product['interest_type']); ?></span></td>
                             <td><?php echo (int) $product['tenure_months']; ?> mo</td>
-                            <td><?php echo number_format($product['processing_fee_pct'], 2); ?>%</td>
+                            <td>
+                                <?php if (($product['processing_fee_type'] ?? 'PERCENTAGE') === 'FLAT'): ?>
+                                    ₹<?php echo number_format($product['processing_fee_flat'], 2); ?> <span class="text-muted small">flat</span>
+                                <?php else: ?>
+                                    <?php echo number_format($product['processing_fee_pct'], 2); ?>%
+                                <?php endif; ?>
+                            </td>
                             <td><?php echo number_format($product['gst_pct'], 2); ?>%</td>
                             <td><?php echo number_format($product['insurance_pct'], 2); ?>%</td>
                             <td><span class="badge <?php echo $product['is_active'] ? 'bg-success' : 'bg-secondary'; ?>"><?php echo $product['is_active'] ? 'Active' : 'Inactive'; ?></span></td>
@@ -140,7 +146,22 @@
                                                     </select>
                                                 </div>
                                                 <div class="col-md-6"><label class="form-label">Tenure (months)</label><input type="number" name="tenure_months" class="form-control" value="<?php echo (int) $product['tenure_months']; ?>"></div>
-                                                <div class="col-md-6"><label class="form-label">Processing Fee %</label><input type="number" step="0.01" name="processing_fee_pct" class="form-control" value="<?php echo htmlspecialchars($product['processing_fee_pct']); ?>"></div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Processing Fee Type</label>
+                                                    <select name="processing_fee_type" class="form-select fee-type-select" data-fee-scope="editFee<?php echo (int) $product['id']; ?>">
+                                                        <?php foreach (array('PERCENTAGE', 'FLAT') as $fee_type): ?>
+                                                            <option value="<?php echo $fee_type; ?>" <?php echo ($product['processing_fee_type'] ?? 'PERCENTAGE') === $fee_type ? 'selected' : ''; ?>><?php echo $fee_type === 'PERCENTAGE' ? 'Percentage' : 'Flat Amount'; ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6 fee-pct-field" id="editFee<?php echo (int) $product['id']; ?>_pct" style="<?php echo ($product['processing_fee_type'] ?? 'PERCENTAGE') === 'FLAT' ? 'display:none;' : ''; ?>">
+                                                    <label class="form-label">Processing Fee %</label>
+                                                    <input type="number" step="0.01" name="processing_fee_pct" class="form-control" value="<?php echo htmlspecialchars($product['processing_fee_pct']); ?>">
+                                                </div>
+                                                <div class="col-md-6 fee-flat-field" id="editFee<?php echo (int) $product['id']; ?>_flat" style="<?php echo ($product['processing_fee_type'] ?? 'PERCENTAGE') === 'FLAT' ? '' : 'display:none;'; ?>">
+                                                    <label class="form-label">Processing Fee (₹)</label>
+                                                    <input type="number" step="0.01" name="processing_fee_flat" class="form-control" value="<?php echo htmlspecialchars($product['processing_fee_flat'] ?? 0); ?>">
+                                                </div>
                                                 <div class="col-md-6"><label class="form-label">GST %</label><input type="number" step="0.01" name="gst_pct" class="form-control" value="<?php echo htmlspecialchars($product['gst_pct']); ?>"></div>
                                                 <div class="col-md-6"><label class="form-label">Insurance %</label><input type="number" step="0.01" name="insurance_pct" class="form-control" value="<?php echo htmlspecialchars($product['insurance_pct']); ?>"></div>
                                                 <div class="col-md-6 form-check ms-2 mt-4">
@@ -504,7 +525,21 @@
                             </select>
                         </div>
                         <div class="col-md-6"><label class="form-label">Tenure (months)</label><input type="number" name="tenure_months" class="form-control"></div>
-                        <div class="col-md-6"><label class="form-label">Processing Fee %</label><input type="number" step="0.01" name="processing_fee_pct" class="form-control" value="0"></div>
+                        <div class="col-md-6">
+                            <label class="form-label">Processing Fee Type</label>
+                            <select name="processing_fee_type" class="form-select fee-type-select" data-fee-scope="createFee">
+                                <option value="PERCENTAGE">Percentage</option>
+                                <option value="FLAT">Flat Amount</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 fee-pct-field" id="createFee_pct">
+                            <label class="form-label">Processing Fee %</label>
+                            <input type="number" step="0.01" name="processing_fee_pct" class="form-control" value="0">
+                        </div>
+                        <div class="col-md-6 fee-flat-field" id="createFee_flat" style="display:none;">
+                            <label class="form-label">Processing Fee (₹)</label>
+                            <input type="number" step="0.01" name="processing_fee_flat" class="form-control" value="0">
+                        </div>
                         <div class="col-md-6"><label class="form-label">GST %</label><input type="number" step="0.01" name="gst_pct" class="form-control" value="18"></div>
                         <div class="col-md-6"><label class="form-label">Insurance %</label><input type="number" step="0.01" name="insurance_pct" class="form-control" value="0"></div>
                     </div>
@@ -615,4 +650,28 @@
     </div></div>
 </div>
 <?php endif; ?>
+
+<script>
+(function () {
+    function applyFeeType(select) {
+        var scope = select.getAttribute('data-fee-scope');
+        var pctField = document.getElementById(scope + '_pct');
+        var flatField = document.getElementById(scope + '_flat');
+        if (! pctField || ! flatField) {
+            return;
+        }
+        var isFlat = select.value === 'FLAT';
+        pctField.style.display = isFlat ? 'none' : '';
+        flatField.style.display = isFlat ? '' : 'none';
+    }
+
+    document.querySelectorAll('.fee-type-select').forEach(applyFeeType);
+
+    document.addEventListener('change', function (e) {
+        if (e.target.classList.contains('fee-type-select')) {
+            applyFeeType(e.target);
+        }
+    });
+})();
+</script>
 

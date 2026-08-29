@@ -134,9 +134,12 @@ id, jewellery_item_id (FK jewellery_items), file_ref, timestamps
 
 ## loan_products
 id, code (unique), name, interest_rate_pct (decimal 5,2), interest_type (default FLAT;
-FLAT/REDUCING), tenure_months, processing_fee_pct (decimal 5,2, default 0), gst_pct
-(decimal 5,2, default 18.00), insurance_pct (decimal 5,2, default 0), is_active (bool),
-timestamps
+FLAT/REDUCING), tenure_months, processing_fee_pct (decimal 5,2, default 0),
+processing_fee_type (default PERCENTAGE; PERCENTAGE/FLAT -- added by
+docs/migrations/2026_08_28_processing_fee_flat_option.sql; when FLAT, the processing fee
+is `processing_fee_flat` verbatim instead of `eligible_amount * processing_fee_pct / 100`),
+processing_fee_flat (decimal 10,2, default 0), gst_pct (decimal 5,2, default 18.00),
+insurance_pct (decimal 5,2, default 0), is_active (bool), timestamps
 
 ## loans
 id, loan_account_number (unique, e.g. LGH001000123 — nullable: only assigned in

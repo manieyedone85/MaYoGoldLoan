@@ -320,20 +320,35 @@ class Report_model extends MY_Model
     }
 
     /** Requirement: "Audit/user activity report" -- reads audit_logs back (BR-012's table, confirmed to already exist on the live DB). */
-    public function audit_activity($from, $to, $actor_id = null, $entity_type = null, $limit = 500)
+    /**
+     * $per_page/$page paginate the result; a caller that just wants everything
+     * up to $per_page rows in one shot (the API, exports) leaves $page at 1
+     * and passes a large $per_page -- same effect as the old flat $limit.
+     */
+    public function audit_activity($from, $to, $actor_id = null, $entity_type = null, $per_page = 500, $page = 1)
     {
         list($from, $to, $start, $end) = $this->_period_range($from, $to);
 
-        $query = $this->db->from('audit_logs')
-            ->where('created_at >=', $start)
-            ->where('created_at <', $end);
-        if ($actor_id) {
-            $query->where('actor_id', $actor_id);
-        }
-        if ($entity_type) {
-            $query->where('entity_type', $entity_type);
-        }
-        $rows = $query->order_by('created_at', 'DESC')->limit($limit)->get()->result_array();
+        $build = function () use ($start, $end, $actor_id, $entity_type) {
+            $query = $this->db->from('audit_logs')
+                ->where('created_at >=', $start)
+                ->where('created_at <', $end);
+            if ($actor_id) {
+                $query->where('actor_id', $actor_id);
+            }
+            if ($entity_type) {
+                $query->where('entity_type', $entity_type);
+            }
+
+            return $query;
+        };
+
+        $total = $build()->count_all_results();
+
+        $per_page = max(1, (int) $per_page);
+        $page = max(1, (int) $page);
+
+        $rows = $build()->order_by('created_at', 'DESC')->limit($per_page, ($page - 1) * $per_page)->get()->result_array();
 
         foreach ($rows as &$row) {
             $row['before_value'] = $row['before_value'] !== null ? json_decode($row['before_value'], true) : null;
@@ -341,7 +356,16 @@ class Report_model extends MY_Model
         }
         unset($row);
 
-        return array('from' => $from, 'to' => $to, 'count' => count($rows), 'data' => $rows);
+        return array(
+            'from' => $from,
+            'to' => $to,
+            'count' => count($rows),
+            'total' => $total,
+            'per_page' => $per_page,
+            'page' => $page,
+            'last_page' => (int) max(1, ceil($total / $per_page)),
+            'data' => $rows,
+        );
     }
 
     /**
@@ -485,6 +509,61 @@ class Report_model extends MY_Model
             'to' => $to,
             'count' => count($rows),
             'total_gst_amount' => round($total_gst, 2),
+            'by_branch' => array_values($by_branch),
+            'data' => $rows,
+        );
+    }
+
+    /**
+     * Processing fee income summary, grouped by branch -- processing_fee is
+     * company income (unlike GST/insurance, which are pass-through), so it
+     * gets the same branch-grouped shape as gst_summary() above, just
+     * filtered to loan_charges.charge_type='PROCESSING_FEE'.
+     */
+    public function processing_fee_summary($branch_id, $from, $to)
+    {
+        list($from, $to, $start, $end) = $this->_period_range($from, $to);
+
+        $query = $this->db->select('loan_charges.id, loan_charges.amount AS processing_fee_amount, loan_charges.created_at, loans.loan_account_number, loans.branch_id, branches.name AS branch_name, customers.name AS customer_name')
+            ->from('loan_charges')
+            ->join('loans', 'loans.id = loan_charges.loan_id', 'left')
+            ->join('branches', 'branches.id = loans.branch_id', 'left')
+            ->join('customers', 'customers.id = loans.customer_id', 'left')
+            ->where('loan_charges.charge_type', 'PROCESSING_FEE')
+            ->where('loan_charges.created_at >=', $start)
+            ->where('loan_charges.created_at <', $end);
+        if ($branch_id) {
+            $query->where('loans.branch_id', $branch_id);
+        }
+        $rows = $query->order_by('loan_charges.created_at', 'ASC')->get()->result_array();
+
+        $by_branch = array();
+        $total_processing_fee = 0.0;
+        foreach ($rows as $row) {
+            $bid = $row['branch_id'];
+            if (! isset($by_branch[$bid])) {
+                $by_branch[$bid] = array(
+                    'branch_id' => $bid,
+                    'branch_name' => $row['branch_name'],
+                    'count' => 0,
+                    'total_processing_fee_amount' => 0.0,
+                );
+            }
+            $by_branch[$bid]['count']++;
+            $by_branch[$bid]['total_processing_fee_amount'] += (float) $row['processing_fee_amount'];
+            $total_processing_fee += (float) $row['processing_fee_amount'];
+        }
+        foreach ($by_branch as &$branch_row) {
+            $branch_row['total_processing_fee_amount'] = round($branch_row['total_processing_fee_amount'], 2);
+        }
+        unset($branch_row);
+
+        return array(
+            'branch_id' => $branch_id,
+            'from' => $from,
+            'to' => $to,
+            'count' => count($rows),
+            'total_processing_fee_amount' => round($total_processing_fee, 2),
             'by_branch' => array_values($by_branch),
             'data' => $rows,
         );

@@ -142,7 +142,7 @@ class Masters extends Admin_Controller
      */
     public function propose_rate()
     {
-        if (! $this->require_admin_role(array('APPRAISER', 'BRANCH_MANAGER'))) {
+        if (! $this->require_admin_role(array('APPRAISER', 'BRANCH_MANAGER', 'ADMIN'))) {
             return;
         }
 
@@ -182,7 +182,7 @@ class Masters extends Admin_Controller
     /** POST /admin/masters/rate/(:num)/approve -- role BRANCH_MANAGER/REGIONAL_MANAGER */
     public function approve_rate($id)
     {
-        if (! $this->require_admin_role(array('BRANCH_MANAGER', 'REGIONAL_MANAGER'))) {
+        if (! $this->require_admin_role(array('ADMIN', 'BRANCH_MANAGER', 'REGIONAL_MANAGER'))) {
             return;
         }
 
@@ -208,7 +208,7 @@ class Masters extends Admin_Controller
     /** POST /admin/masters/vault/create */
     public function store_vault()
     {
-        if (! $this->require_admin_role(array('OPERATIONS'))) {
+        if (! $this->require_admin_role(array('ADMIN','OPERATIONS'))) {
             return;
         }
 
@@ -227,7 +227,7 @@ class Masters extends Admin_Controller
     /** POST /admin/masters/vault/(:num) */
     public function update_vault($id)
     {
-        if (! $this->require_admin_role(array('OPERATIONS'))) {
+        if (! $this->require_admin_role(array('ADMIN','OPERATIONS'))) {
             return;
         }
 
@@ -252,7 +252,7 @@ class Masters extends Admin_Controller
     /** POST /admin/masters/gl-account/create */
     public function store_gl_account()
     {
-        if (! $this->require_admin_role(array('OPERATIONS'))) {
+        if (! $this->require_admin_role(array('ADMIN','OPERATIONS'))) {
             return;
         }
 
@@ -274,7 +274,7 @@ class Masters extends Admin_Controller
     /** POST /admin/masters/gl-account/(:num) */
     public function update_gl_account($id)
     {
-        if (! $this->require_admin_role(array('OPERATIONS'))) {
+        if (! $this->require_admin_role(array('ADMIN','OPERATIONS'))) {
             return;
         }
 
@@ -302,7 +302,7 @@ class Masters extends Admin_Controller
     /** POST /admin/masters/approval-limit/create */
     public function store_approval_limit()
     {
-        if (! $this->require_admin_role(array('OPERATIONS'))) {
+        if (! $this->require_admin_role(array('ADMIN','OPERATIONS'))) {
             return;
         }
 
@@ -321,7 +321,7 @@ class Masters extends Admin_Controller
     /** POST /admin/masters/approval-limit/(:num) */
     public function update_approval_limit($id)
     {
-        if (! $this->require_admin_role(array('OPERATIONS'))) {
+        if (! $this->require_admin_role(array('ADMIN','OPERATIONS'))) {
             return;
         }
 
@@ -345,7 +345,7 @@ class Masters extends Admin_Controller
     /** POST /admin/masters/branch/create */
     public function store_branch()
     {
-        if (! $this->require_admin_role(array('OPERATIONS'))) {
+        if (! $this->require_admin_role(array('ADMIN','OPERATIONS'))) {
             return;
         }
 
@@ -374,7 +374,7 @@ class Masters extends Admin_Controller
     /** POST /admin/masters/branch/(:num) */
     public function update_branch($id)
     {
-        if (! $this->require_admin_role(array('OPERATIONS'))) {
+        if (! $this->require_admin_role(array('ADMIN','OPERATIONS'))) {
             return;
         }
 
@@ -411,11 +411,11 @@ class Masters extends Admin_Controller
     /** POST /admin/masters/loan-product/create */
     public function store_loan_product()
     {
-        if (! $this->require_admin_role(array('OPERATIONS'))) {
+        if (! $this->require_admin_role(array('ADMIN','OPERATIONS'))) {
             return;
         }
 
-        $data = $this->_collect(array('code', 'name', 'interest_rate_pct', 'interest_type', 'tenure_months', 'processing_fee_pct', 'gst_pct', 'insurance_pct'));
+        $data = $this->_collect(array('code', 'name', 'interest_rate_pct', 'interest_type', 'tenure_months', 'processing_fee_pct', 'processing_fee_type', 'processing_fee_flat', 'gst_pct', 'insurance_pct'));
 
         if ($data['code'] === '' || $data['name'] === '' || $data['interest_rate_pct'] === '' || $data['tenure_months'] === '') {
             return $this->_fail('Code, name, interest rate and tenure are required.');
@@ -431,6 +431,8 @@ class Masters extends Admin_Controller
             'interest_type' => $data['interest_type'] !== '' ? $data['interest_type'] : 'FLAT',
             'tenure_months' => $data['tenure_months'],
             'processing_fee_pct' => $data['processing_fee_pct'] !== '' ? $data['processing_fee_pct'] : 0,
+            'processing_fee_type' => $data['processing_fee_type'] === 'FLAT' ? 'FLAT' : 'PERCENTAGE',
+            'processing_fee_flat' => $data['processing_fee_flat'] !== '' ? $data['processing_fee_flat'] : 0,
             'gst_pct' => $data['gst_pct'] !== '' ? $data['gst_pct'] : 18.00,
             'insurance_pct' => $data['insurance_pct'] !== '' ? $data['insurance_pct'] : 0,
             'is_active' => 1,
@@ -443,7 +445,7 @@ class Masters extends Admin_Controller
     /** POST /admin/masters/loan-product/(:num) */
     public function update_loan_product($id)
     {
-        if (! $this->require_admin_role(array('OPERATIONS'))) {
+        if (! $this->require_admin_role(array('ADMIN','OPERATIONS'))) {
             return;
         }
 
@@ -454,7 +456,7 @@ class Masters extends Admin_Controller
             return;
         }
 
-        $data = $this->_collect(array('code', 'name', 'interest_rate_pct', 'interest_type', 'tenure_months', 'processing_fee_pct', 'gst_pct', 'insurance_pct'));
+        $data = $this->_collect(array('code', 'name', 'interest_rate_pct', 'interest_type', 'tenure_months', 'processing_fee_pct', 'processing_fee_type', 'processing_fee_flat', 'gst_pct', 'insurance_pct'));
         $is_active = $this->input->post('is_active') ? 1 : 0;
 
         if ($data['code'] === '' || $data['name'] === '' || $data['interest_rate_pct'] === '' || $data['tenure_months'] === '') {
@@ -471,6 +473,8 @@ class Masters extends Admin_Controller
             'interest_type' => $data['interest_type'] !== '' ? $data['interest_type'] : 'FLAT',
             'tenure_months' => $data['tenure_months'],
             'processing_fee_pct' => $data['processing_fee_pct'],
+            'processing_fee_type' => $data['processing_fee_type'] === 'FLAT' ? 'FLAT' : 'PERCENTAGE',
+            'processing_fee_flat' => $data['processing_fee_flat'] !== '' ? $data['processing_fee_flat'] : 0,
             'gst_pct' => $data['gst_pct'],
             'insurance_pct' => $data['insurance_pct'],
             'is_active' => $is_active,
@@ -483,7 +487,7 @@ class Masters extends Admin_Controller
     /** POST /admin/masters/role/create */
     public function store_role()
     {
-        if (! $this->require_admin_role(array('OPERATIONS'))) {
+        if (! $this->require_admin_role(array('ADMIN','OPERATIONS'))) {
             return;
         }
 
@@ -509,7 +513,7 @@ class Masters extends Admin_Controller
     /** POST /admin/masters/role/(:num) -- code is intentionally not editable, see Master::role_update(). */
     public function update_role($id)
     {
-        if (! $this->require_admin_role(array('OPERATIONS'))) {
+        if (! $this->require_admin_role(array('ADMIN','OPERATIONS'))) {
             return;
         }
 

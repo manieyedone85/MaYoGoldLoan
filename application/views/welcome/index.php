@@ -3,8 +3,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>GoldTrust Finance — Instant Gold Loans</title>
-    <meta name="description" content="Get instant gold loans at low interest rates with GoldTrust Finance. High valuation, minimal paperwork, doorstep service.">
+    <title>Aurum Finance — Instant Gold Loans</title>
+    <meta name="description" content="Get instant gold loans at low interest rates with Aurum Finance. High valuation, minimal paperwork, doorstep service.">
+    <link rel="icon" type="image/jpeg" href="<?php echo base_url('assets/images/logo-aurum-fab.jpg'); ?>">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -18,7 +19,7 @@
 
 <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
     <div class="container">
-        <a class="navbar-brand" href="<?php echo base_url(); ?>"><i class="bi bi-gem"></i> GoldTrust Finance</a>
+        <a class="navbar-brand" href="<?php echo base_url(); ?>"><i class="bi bi-gem"></i> Aurum Finance</a>
         <div class="ms-auto">
             <a href="#offers" class="btn btn-outline-dark btn-sm me-2">Loan Offers</a>
             <a href="<?php echo base_url('admin/login'); ?>" class="btn btn-dark btn-sm">Staff Login</a>
@@ -111,7 +112,7 @@
 
 <footer class="py-4 bg-dark text-light">
     <div class="container text-center small">
-        &copy; <?php echo date('Y'); ?> GoldTrust Finance. All rights reserved. &middot;
+        &copy; <?php echo date('Y'); ?> Aurum Finance. All rights reserved. &middot;
         <a href="<?php echo base_url('admin/login'); ?>" class="text-light">Staff Login</a>
     </div>
 </footer>

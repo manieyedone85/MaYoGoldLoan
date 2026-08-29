@@ -21,6 +21,9 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  */
 class Reports extends Admin_Controller
 {
+    /** Set by _report_tables() when $paginate is true, for view() to hand to the report_view.php pagination widget. */
+    private $_pagination = null;
+
     /**
      * Metadata driving the report menu and each report's filter form.
      * `filters` lists which filter groups apply: 'branch' (a branch_id
@@ -39,7 +42,8 @@ class Reports extends Admin_Controller
         'renewal_topup_reloan' => array('label' => 'Renewal / Top-up / Re-loan Activity', 'description' => 'Renewals, top-ups, and re-loans booked over a period.', 'filters' => array('period')),
         'jewellery_release' => array('label' => 'Jewellery Release', 'description' => 'Jewellery items released back to customers over a period.', 'filters' => array('branch', 'period')),
         'gst_summary' => array('label' => 'GST Summary (Tax Filing)', 'description' => 'GST charged on loan processing fees, grouped by branch GSTIN.', 'filters' => array('branch', 'period')),
-        'audit_activity' => array('label' => 'Audit / User Activity', 'description' => 'Create/update/approve/reject actions logged over a period.', 'filters' => array('period', 'entity_type')),
+        'processing_fee_summary' => array('label' => 'Processing Fee Income', 'description' => 'Processing fee charged on loans -- company income, grouped by branch.', 'filters' => array('branch', 'period')),
+        'audit_activity' => array('label' => 'Audit / User Activity', 'description' => 'Create/update/approve/reject actions logged over a period.', 'filters' => array('period', 'entity_type', 'paginated')),
     );
 
     public function __construct()
@@ -68,6 +72,8 @@ class Reports extends Admin_Controller
         }
 
         $filters = $this->_read_filters($code);
+        $this->_pagination = null;
+        $tables = $this->_report_tables($code, $filters, true);
 
         $this->render('report_view', array(
             'page_title' => self::$REPORT_DEFS[$code]['label'],
@@ -75,11 +81,12 @@ class Reports extends Admin_Controller
             'def' => self::$REPORT_DEFS[$code],
             'branches' => $this->branches->all(array(), 'name ASC'),
             'filters' => $filters,
-            'tables' => $this->_report_tables($code, $filters),
+            'tables' => $tables,
+            'pagination' => $this->_pagination,
         ));
     }
 
-    /** GET /admin/reports/export/(report_code) -- same filters as view(), streamed as .xlsx. */
+    /** GET /admin/reports/export/(report_code) -- same filters as view(), streamed as .xlsx. Always the full result set, never just the current page. */
     public function export($code)
     {
         if (! isset(self::$REPORT_DEFS[$code])) {
@@ -91,7 +98,7 @@ class Reports extends Admin_Controller
         $filters = $this->_read_filters($code);
 
         $this->load->library('xlsx_report');
-        $this->xlsx_report->download($code . '_' . date('Ymd_His') . '.xlsx', $this->_report_tables($code, $filters));
+        $this->xlsx_report->download($code . '_' . date('Ymd_His') . '.xlsx', $this->_report_tables($code, $filters, false));
     }
 
     /** Reads only the GET params relevant to this report's declared filter groups, with sane defaults. */
@@ -115,6 +122,9 @@ class Reports extends Admin_Controller
         if (in_array('entity_type', $needed, true)) {
             $filters['entity_type'] = trim((string) $this->input->get('entity_type'));
         }
+        if (in_array('paginated', $needed, true)) {
+            $filters['page'] = max(1, (int) $this->input->get('page'));
+        }
 
         return $filters;
     }
@@ -123,9 +133,11 @@ class Reports extends Admin_Controller
      * Maps each report code's (differently-shaped) data into headers+rows
      * table(s) -- the single source of truth shared by view() (rendered as
      * HTML) and export() (streamed as .xlsx), so what's on screen always
-     * matches what's downloaded.
+     * matches what's downloaded. $paginate is false for export() -- a
+     * download should always be the full result set, never just the page
+     * currently on screen.
      */
-    private function _report_tables($code, array $filters)
+    private function _report_tables($code, array $filters, $paginate = true)
     {
         $branch_id = $filters['branch_id'] ?? null;
         $date = $filters['date'] ?? date('Y-m-d');
@@ -247,7 +259,17 @@ class Reports extends Admin_Controller
                 return array(array('title' => 'Jewellery Release', 'headers' => array('Loan A/C', 'Customer', 'Barcode', 'Released To', 'Released At'), 'rows' => $rows));
 
             case 'audit_activity':
-                $d = $this->reports->audit_activity($from, $to, null, $entity_type, 500);
+                $page = $paginate ? max(1, (int) ($filters['page'] ?? 1)) : 1;
+                $per_page = $paginate ? 50 : 500;
+                $d = $this->reports->audit_activity($from, $to, null, $entity_type, $per_page, $page);
+                if ($paginate) {
+                    $this->_pagination = array(
+                        'page' => $d['page'],
+                        'last_page' => $d['last_page'],
+                        'total' => $d['total'],
+                        'per_page' => $d['per_page'],
+                    );
+                }
                 $rows = array();
                 foreach ($d['data'] as $r) {
                     $rows[] = array(
@@ -273,6 +295,22 @@ class Reports extends Admin_Controller
                 return array(
                     array('title' => 'GST by Branch', 'headers' => array('Branch', 'GSTIN', 'Count', 'Total GST'), 'rows' => $summary_rows),
                     array('title' => 'GST Detail', 'headers' => array('Date', 'Loan A/C', 'Customer', 'Branch', 'GSTIN', 'GST Amount'), 'rows' => $detail_rows),
+                );
+
+            case 'processing_fee_summary':
+                $d = $this->reports->processing_fee_summary($branch_id, $from, $to);
+                $summary_rows = array();
+                foreach ($d['by_branch'] as $b) {
+                    $summary_rows[] = array($b['branch_name'], $b['count'], $b['total_processing_fee_amount']);
+                }
+                $detail_rows = array();
+                foreach ($d['data'] as $r) {
+                    $detail_rows[] = array($r['created_at'], $r['loan_account_number'] ?? 'Pending disbursement', $r['customer_name'], $r['branch_name'], $r['processing_fee_amount']);
+                }
+
+                return array(
+                    array('title' => 'Processing Fee Income by Branch', 'headers' => array('Branch', 'Count', 'Total Processing Fee'), 'rows' => $summary_rows),
+                    array('title' => 'Processing Fee Detail', 'headers' => array('Date', 'Loan A/C', 'Customer', 'Branch', 'Processing Fee Amount'), 'rows' => $detail_rows),
                 );
 
             default:

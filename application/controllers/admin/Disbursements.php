@@ -91,9 +91,9 @@ class Disbursements extends Admin_Controller
             return $this->_fail('A valid disbursement mode is required (' . implode(', ', $allowed_codes) . ').');
         }
 
-        if ($mode['code'] === 'CASH' && (float) $loan['net_disbursed_amount'] > self::CASH_LIMIT) {
+        /*if ($mode['code'] === 'CASH' && (float) $loan['net_disbursed_amount'] > self::CASH_LIMIT) {
             return $this->_fail('Cash disbursement above ₹' . number_format(self::CASH_LIMIT) . ' is not permitted. Use a bank transfer mode.');
-        }
+        }*/
 
         $reference_number = trim((string) $this->input->post('reference_number'));
 

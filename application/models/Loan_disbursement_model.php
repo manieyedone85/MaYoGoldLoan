@@ -49,6 +49,18 @@ class Loan_disbursement_model extends MY_Model
         );
     }
 
+    /** Disbursements for one loan, joined with mode name -- for the admin loan detail "Disbursements" section. */
+    public function for_loan($loan_id)
+    {
+        return $this->db->select('loan_disbursements.*, disbursement_mode_master.code AS mode_code, disbursement_mode_master.name AS mode_name')
+            ->from('loan_disbursements')
+            ->join('disbursement_mode_master', 'disbursement_mode_master.id = loan_disbursements.mode', 'left')
+            ->where('loan_disbursements.loan_id', $loan_id)
+            ->order_by('loan_disbursements.id', 'DESC')
+            ->get()
+            ->result_array();
+    }
+
     /** Single disbursement joined with loan/customer/branch/mode names -- for the printable disbursement receipt. */
     public function find_with_relations($id)
     {

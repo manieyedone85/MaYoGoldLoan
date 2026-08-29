@@ -44,7 +44,9 @@ class Loan extends Api_Controller
         $product = $this->loan_products->find($data['loan_product_id']);
         $eligibleAmount = $this->jewellery_items->sum_eligible_amount($data['jewellery_item_ids']);
 
-        $processingFee = round($eligibleAmount * ($product['processing_fee_pct'] / 100), 2);
+        $processingFee = $product['processing_fee_type'] === 'FLAT'
+            ? (float) $product['processing_fee_flat']
+            : round($eligibleAmount * ($product['processing_fee_pct'] / 100), 2);
         $gst = round($processingFee * ($product['gst_pct'] / 100), 2);
         $insurance = round($eligibleAmount * ($product['insurance_pct'] / 100), 2);
         $netDisbursed = $eligibleAmount - $processingFee - $gst - $insurance;
@@ -101,7 +103,9 @@ class Loan extends Api_Controller
         $product = $this->loan_products->find($data['loan_product_id']);
         $eligibleAmount = $this->jewellery_items->sum_eligible_amount($data['jewellery_item_ids']);
 
-        $processingFee = round($eligibleAmount * ($product['processing_fee_pct'] / 100), 2);
+        $processingFee = $product['processing_fee_type'] === 'FLAT'
+            ? (float) $product['processing_fee_flat']
+            : round($eligibleAmount * ($product['processing_fee_pct'] / 100), 2);
         $gst = round($processingFee * ($product['gst_pct'] / 100), 2);
         $insurance = round($eligibleAmount * ($product['insurance_pct'] / 100), 2);
         $netDisbursed = $eligibleAmount - $processingFee - $gst - $insurance;

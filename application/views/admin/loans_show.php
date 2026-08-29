@@ -17,12 +17,16 @@
                 <div class="row g-3">
                     <div class="col-md-4"><strong>A/C No.:</strong> <?php echo htmlspecialchars($loan['loan_account_number'] ?? 'Pending disbursement'); ?></div>
                     <div class="col-md-4"><strong>Status:</strong> <span class="badge bg-secondary"><?php echo htmlspecialchars($loan['status']); ?></span></div>
-                    <div class="col-md-4"><strong>Customer:</strong> <?php echo htmlspecialchars($loan['customer_name'] ?? '—'); ?></div>
+                    <div class="col-md-4"><strong>Customer:</strong> <a href="<?php echo base_url('admin/customers/' . $loan['customer_id']); ?>"><?php echo htmlspecialchars($loan['customer_name'] ?? '—'); ?></a></div>
+                    <div class="col-md-4"><strong>Mobile:</strong> <?php echo htmlspecialchars($loan['customer_mobile'] ?? '—'); ?></div>
                     <div class="col-md-4"><strong>Branch:</strong> <?php echo htmlspecialchars($loan['branch_name'] ?? '—'); ?></div>
                     <div class="col-md-4"><strong>Product:</strong> <?php echo htmlspecialchars($loan['product_name'] ?? '—'); ?></div>
                     <div class="col-md-4"><strong>Interest Rate:</strong> <?php echo htmlspecialchars($loan['interest_rate_pct']); ?>%</div>
                     <div class="col-md-4"><strong>Eligible Amount:</strong> ₹<?php echo number_format($loan['eligible_amount'], 2); ?></div>
                     <div class="col-md-4"><strong>Sanctioned Amount:</strong> ₹<?php echo number_format($loan['sanctioned_amount'], 2); ?></div>
+                    <div class="col-md-4"><strong>Processing Fee:</strong> ₹<?php echo number_format((float) $loan['processing_fee'], 2); ?></div>
+                    <div class="col-md-4"><strong>GST:</strong> ₹<?php echo number_format((float) $loan['gst_amount'], 2); ?></div>
+                    <div class="col-md-4"><strong>Insurance:</strong> ₹<?php echo number_format((float) $loan['insurance_amount'], 2); ?></div>
                     <div class="col-md-4"><strong>Net Disbursed:</strong> ₹<?php echo number_format((float) $loan['net_disbursed_amount'], 2); ?></div>
                     <div class="col-md-4"><strong>Loan Date:</strong> <?php echo ! empty($loan['loan_date']) ? htmlspecialchars(date('d-M-Y', strtotime($loan['loan_date']))) : '—'; ?></div>
                     <div class="col-md-4"><strong>Due Date:</strong> <?php echo ! empty($loan['due_date']) ? htmlspecialchars(date('d-M-Y', strtotime($loan['due_date']))) : '—'; ?></div>
@@ -62,7 +66,7 @@
                             <tr><td colspan="4" class="text-center text-muted py-3">Not yet disbursed.</td></tr>
                         <?php else: foreach ($disbursements as $d): ?>
                             <tr>
-                                <td><?php echo htmlspecialchars($d['mode']); ?></td>
+                                <td><?php echo htmlspecialchars($d['mode_name'] ?? $d['mode_code'] ?? $d['mode']); ?></td>
                                 <td>₹<?php echo number_format($d['amount'], 2); ?></td>
                                 <td><?php echo htmlspecialchars($d['reference_number'] ?? '—'); ?></td>
                                 <td><span class="badge bg-secondary"><?php echo htmlspecialchars($d['status']); ?></span></td>

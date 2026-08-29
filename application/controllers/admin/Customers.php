@@ -226,6 +226,156 @@ class Customers extends Admin_Controller
         redirect('admin/customers/' . $id);
     }
 
+    /**
+     * POST /admin/customers/(:num)/details -- direct edit of email, PAN
+     * number and Aadhaar on the customer record itself. Distinct from the
+     * Aadhaar/PAN "Verify" actions above, which record a verification event
+     * (aadhaar_verifications / pan_verifications) -- this just corrects the
+     * stored value. Email and PAN are editable/clearable since the form
+     * pre-fills the current value; the Aadhaar number is never pre-filled
+     * (only aadhaar_last4 is known), so a blank Aadhaar field always means
+     * "leave unchanged" here.
+     */
+    public function update_details($id)
+    {
+        $customer = $this->customers->find($id);
+        if (! $customer) {
+            show_404();
+
+            return;
+        }
+
+        $email = trim((string) $this->input->post('email'));
+        if ($email !== '' && ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->_kyc_fail($id, 'Please enter a valid email address.');
+        }
+
+        $pan_number = strtoupper(trim((string) $this->input->post('pan_number')));
+        if ($pan_number !== '' && ! preg_match('/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/', $pan_number)) {
+            return $this->_kyc_fail($id, 'PAN number must match the PAN format (5 letters, 4 digits, 1 letter).');
+        }
+
+        $aadhaar_number = trim((string) $this->input->post('aadhaar_number'));
+        if ($aadhaar_number !== '' && ! preg_match('/^\d{12}$/', $aadhaar_number)) {
+            return $this->_kyc_fail($id, 'Aadhaar number must be exactly 12 digits.');
+        }
+
+        $update = array(
+            'email' => $email !== '' ? $email : null,
+            'pan_number' => $pan_number !== '' ? $pan_number : null,
+        );
+        // Never persist the full Aadhaar number -- same rule as verify_aadhaar().
+        if ($aadhaar_number !== '') {
+            $update['aadhaar_last4'] = substr($aadhaar_number, -4);
+            $update['aadhaar_hash'] = hash('sha256', $aadhaar_number);
+        }
+
+        $this->customers->update($id, $update);
+
+        $this->audit_log('Customer', $id, 'CUSTOMER_DETAILS_UPDATE', array(
+            'email' => $customer['email'],
+            'pan_number' => $customer['pan_number'] ? '(redacted)' : null,
+            'aadhaar_last4' => $customer['aadhaar_last4'],
+        ), array(
+            'email' => $update['email'],
+            'pan_number' => $update['pan_number'] ? '(redacted)' : null,
+            'aadhaar_last4' => $update['aadhaar_last4'] ?? $customer['aadhaar_last4'],
+        ));
+
+        $this->session->set_flashdata('status', 'Customer details updated.');
+        redirect('admin/customers/' . $id);
+    }
+
+    /** GET /admin/customers/(:num)/photo -- gated inline photo view, same pattern as Kyc::file(). */
+    public function photo($id)
+    {
+        $customer = $this->customers->find($id);
+        if (! $customer || empty($customer['photo_path'])) {
+            show_404();
+
+            return;
+        }
+
+        $path = FCPATH . 'uploads/' . $customer['photo_path'];
+        if (! is_file($path)) {
+            show_404();
+
+            return;
+        }
+
+        $this->audit_log('Customer', $id, 'CUSTOMER_PHOTO_VIEW', null, null);
+
+        $mime = function_exists('mime_content_type') ? mime_content_type($path) : 'application/octet-stream';
+        header('Content-Type: ' . $mime);
+        header('Content-Disposition: inline; filename="' . basename($path) . '"');
+        header('Content-Length: ' . filesize($path));
+        readfile($path);
+        exit;
+    }
+
+    /**
+     * POST /admin/customers/(:num)/photo -- upload/replace the customer's
+     * photo. Same upload conventions as the cust_photo handling in
+     * Loans::store() (uploads/customer-photos, jpg|jpeg|png|webp, 5120kb max).
+     */
+    public function update_photo($id)
+    {
+        $customer = $this->customers->find($id);
+        if (! $customer) {
+            show_404();
+
+            return;
+        }
+
+        if (empty($_FILES['photo']) || empty($_FILES['photo']['name'])) {
+            return $this->_kyc_fail($id, 'Please choose a photo to upload.');
+        }
+
+        if ($_FILES['photo']['size'] > 5120 * 1024) {
+            return $this->_kyc_fail($id, 'Customer photo must not be greater than 5120 kilobytes.');
+        }
+
+        $ext = strtolower(pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION));
+        if (! in_array($ext, array('jpg', 'jpeg', 'png', 'webp'), true)) {
+            return $this->_kyc_fail($id, 'Customer photo must be a jpg, jpeg, png, or webp file.');
+        }
+
+        $upload_dir = FCPATH . 'uploads/customer-photos';
+        if (! is_dir($upload_dir)) {
+            mkdir($upload_dir, 0775, true);
+        }
+
+        $this->load->library('upload', array(
+            'upload_path' => $upload_dir,
+            'allowed_types' => 'jpg|jpeg|png|webp',
+            'max_size' => 5120,
+            'encrypt_name' => true,
+        ));
+
+        if (! $this->upload->do_upload('photo')) {
+            return $this->_kyc_fail($id, $this->upload->display_errors('', ''));
+        }
+
+        $uploaded = $this->upload->data();
+        $photo_path = 'customer-photos/' . $uploaded['file_name'];
+
+        $old_photo_path = $customer['photo_path'];
+
+        $this->customers->update($id, array('photo_path' => $photo_path));
+
+        if (! empty($old_photo_path)) {
+            $old_full_path = FCPATH . 'uploads/' . $old_photo_path;
+            if (is_file($old_full_path)) {
+                unlink($old_full_path);
+            }
+        }
+
+        $this->audit_log('Customer', $id, 'CUSTOMER_PHOTO_UPDATE', array('photo_path' => $old_photo_path), array('photo_path' => $photo_path));
+
+        $this->session->set_flashdata('status', 'Customer photo updated.');
+        redirect('admin/customers/' . $id);
+    }
+
     private function _kyc_fail($id, $message)
     {
         $this->session->set_flashdata('error', $message);

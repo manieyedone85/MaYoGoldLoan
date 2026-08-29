@@ -21,4 +21,16 @@ class Gold_rate_model extends MY_Model
             ->get()
             ->row_array();
     }
+
+    /** Distinct karats with at least one APPROVED rate -- for the loan-create Purity dropdown. */
+    public function approved_karats()
+    {
+        return $this->db->select('karat')
+            ->distinct()
+            ->from($this->table)
+            ->where('status', 'APPROVED')
+            ->order_by('karat', 'ASC')
+            ->get()
+            ->result_array();
+    }
 }

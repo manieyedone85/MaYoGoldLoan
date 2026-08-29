@@ -29,7 +29,7 @@ $old_items = ! empty($old['items']) && is_array($old['items']) ? array_values($o
 
             <div id="existingCustomerFields" class="row g-2 align-items-end" style="<?php echo $customer_mode === 'existing' ? '' : 'display:none;'; ?>">
                 <div class="col-md-9">
-                    <label class="form-label">Mobile or Customer Code</label>
+                    <label class="form-label">Mobile or Customer Code <span class="text-danger">*</span></label>
                     <input type="text" name="customer_search" class="form-control" value="<?php echo htmlspecialchars(isset($old['customer_search']) ? $old['customer_search'] : ''); ?>">
                     <div class="form-text">The exact mobile number or customer code of an existing customer.</div>
                 </div>
@@ -37,11 +37,11 @@ $old_items = ! empty($old['items']) && is_array($old['items']) ? array_values($o
 
             <div id="newCustomerFields" class="row g-3" style="<?php echo $customer_mode === 'new' ? '' : 'display:none;'; ?>">
                 <div class="col-md-4">
-                    <label class="form-label">Name</label>
+                    <label class="form-label">Name <span class="text-danger">*</span></label>
                     <input type="text" name="cust_name" class="form-control" value="<?php echo htmlspecialchars(isset($old['cust_name']) ? $old['cust_name'] : ''); ?>">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Mobile</label>
+                    <label class="form-label">Mobile <span class="text-danger">*</span></label>
                     <input type="text" name="cust_mobile" class="form-control" value="<?php echo htmlspecialchars(isset($old['cust_mobile']) ? $old['cust_mobile'] : ''); ?>">
                 </div>
                 <div class="col-md-4">
@@ -83,23 +83,23 @@ $old_items = ! empty($old['items']) && is_array($old['items']) ? array_values($o
                     <input type="number" step="0.01" min="0" name="cust_income" class="form-control" value="<?php echo htmlspecialchars(isset($old['cust_income']) ? $old['cust_income'] : ''); ?>">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Photo</label>
+                    <label class="form-label">Customer Photo</label>
                     <input type="file" name="cust_photo" class="form-control" accept=".jpg,.jpeg,.png,.webp">
                 </div>
                 <div class="col-md-8">
-                    <label class="form-label">Address Line 1</label>
+                    <label class="form-label">Address Line 1 <span class="text-danger">*</span></label>
                     <input type="text" name="address_line1" class="form-control" placeholder="Enter Door Number, Street Name, Village" value="<?php echo htmlspecialchars(isset($old['address_line1']) ? $old['address_line1'] : ''); ?>">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">City</label>
+                    <label class="form-label">City <span class="text-danger">*</span></label>
                     <input type="text" name="address_city" class="form-control" placeholder="Enter City" value="<?php echo htmlspecialchars(isset($old['address_city']) ? $old['address_city'] : ''); ?>">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">State</label>
+                    <label class="form-label">State <span class="text-danger">*</span></label>
                     <input type="text" name="address_state" class="form-control" placeholder="Enter State" value="<?php echo htmlspecialchars(isset($old['address_state']) ? $old['address_state'] : ''); ?>">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Pincode</label>
+                    <label class="form-label">Pincode <span class="text-danger">*</span></label>
                     <input type="text" name="address_pincode" class="form-control" placeholder="Enter Pincode" value="<?php echo htmlspecialchars(isset($old['address_pincode']) ? $old['address_pincode'] : ''); ?>">
                 </div>
             </div>
@@ -139,7 +139,7 @@ $old_items = ! empty($old['items']) && is_array($old['items']) ? array_values($o
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label">Branch</label>
+                    <label class="form-label">Branch <span class="text-danger">*</span></label>
                     <select name="branch_id" class="form-select">
                         <option value="">Select branch</option>
                         <?php foreach ($branches as $branch): ?>
@@ -148,7 +148,7 @@ $old_items = ! empty($old['items']) && is_array($old['items']) ? array_values($o
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Loan Product</label>
+                    <label class="form-label">Loan Product <span class="text-danger">*</span></label>
                     <select name="loan_product_id" class="form-select">
                         <option value="">Select product</option>
                         <?php foreach ($loan_products as $product): ?>
@@ -168,8 +168,8 @@ $old_items = ! empty($old['items']) && is_array($old['items']) ? array_values($o
         <div class="card-body" id="itemRows">
             <?php foreach ($old_items as $idx => $item): ?>
             <div class="row g-2 align-items-end border-bottom pb-3 mb-3 item-row">
-                <div class="col-md-3">
-                    <label class="form-label small">Category</label>
+                <div class="col-md-2">
+                    <label class="form-label small">Category <span class="text-danger">*</span></label>
                     <select name="items[<?php echo (int) $idx; ?>][category_id]" class="form-select form-select-sm">
                         <option value="">Select</option>
                         <?php foreach ($categories as $category): ?>
@@ -178,18 +178,34 @@ $old_items = ! empty($old['items']) && is_array($old['items']) ? array_values($o
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label small">Purity (e.g. 22K)</label>
-                    <input type="text" name="items[<?php echo (int) $idx; ?>][purity_karat]" class="form-control form-control-sm" value="<?php echo htmlspecialchars(isset($item['purity_karat']) ? $item['purity_karat'] : ''); ?>">
+                    <label class="form-label small">Purity <span class="text-danger">*</span></label>
+                    <select name="items[<?php echo (int) $idx; ?>][purity_karat]" class="form-select form-select-sm item-purity">
+                        <option value="">Select</option>
+                        <?php foreach ($purity_karats as $karat): ?>
+                            <option value="<?php echo htmlspecialchars($karat['karat']); ?>" <?php echo (isset($item['purity_karat']) && (string) $item['purity_karat'] === (string) $karat['karat']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($karat['karat']); ?></option>
+                        <?php endforeach; ?>
+                        <?php if (isset($item['purity_karat']) && $item['purity_karat'] !== '' && ! in_array($item['purity_karat'], array_column($purity_karats, 'karat'), true)): ?>
+                            <option value="<?php echo htmlspecialchars($item['purity_karat']); ?>" selected><?php echo htmlspecialchars($item['purity_karat']); ?></option>
+                        <?php endif; ?>
+                    </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label small">Gross Weight (g)</label>
-                    <input type="number" step="0.001" name="items[<?php echo (int) $idx; ?>][gross_weight]" class="form-control form-control-sm" value="<?php echo htmlspecialchars(isset($item['gross_weight']) ? $item['gross_weight'] : ''); ?>">
+                    <label class="form-label small">Gross Weight (g) <span class="text-danger">*</span></label>
+                    <input type="number" step="0.001" name="items[<?php echo (int) $idx; ?>][gross_weight]" class="form-control form-control-sm item-gross-weight" value="<?php echo htmlspecialchars(isset($item['gross_weight']) ? $item['gross_weight'] : ''); ?>">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small">Stone Weight (g)</label>
-                    <input type="number" step="0.001" name="items[<?php echo (int) $idx; ?>][stone_weight]" class="form-control form-control-sm" value="<?php echo htmlspecialchars(isset($item['stone_weight']) ? $item['stone_weight'] : ''); ?>">
+                    <input type="number" step="0.001" name="items[<?php echo (int) $idx; ?>][stone_weight]" class="form-control form-control-sm item-stone-weight" value="<?php echo htmlspecialchars(isset($item['stone_weight']) ? $item['stone_weight'] : ''); ?>">
                 </div>
-                <div class="col-md-2 form-check mb-2">
+                <div class="col-md-2">
+                    <label class="form-label small">Net Weight (g)</label>
+                    <input type="text" class="form-control form-control-sm item-net-weight" value="<?php echo isset($item['gross_weight']) ? number_format(max(0, (float) $item['gross_weight'] - (float) ($item['stone_weight'] ?? 0)), 3) : '0.000'; ?>" readonly tabindex="-1">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Eligible Amount (₹)</label>
+                    <input type="text" class="form-control form-control-sm item-eligible-amount" value="0.00" readonly tabindex="-1">
+                </div>
+                <div class="col-md-1 form-check mb-2">
                     <input type="checkbox" name="items[<?php echo (int) $idx; ?>][hallmark_flag]" value="1" class="form-check-input" <?php echo ! empty($item['hallmark_flag']) ? 'checked' : ''; ?>>
                     <label class="form-check-label small">Hallmarked</label>
                 </div>
@@ -198,6 +214,19 @@ $old_items = ! empty($old['items']) && is_array($old['items']) ? array_values($o
                 </div>
             </div>
             <?php endforeach; ?>
+        </div>
+        <div class="card-footer bg-white">
+            <div class="row g-3 align-items-end justify-content-end">
+                <div class="col-md-5 text-end">
+                    <span class="text-muted small">Total Eligible Amount (for visibility only -- computed authoritatively on submit):</span>
+                    <strong id="totalEligibleAmount">₹0.00</strong>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small">Sanctioned Amount (₹) <span class="text-danger">*</span></label>
+                    <input type="number" step="0.01" min="0.01" name="sanctioned_amount" id="sanctionedAmount" class="form-control form-control-sm" value="<?php echo htmlspecialchars(isset($old['sanctioned_amount']) ? $old['sanctioned_amount'] : ''); ?>" required>
+                    <div class="form-text">Must be less than or equal to the total eligible amount.</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -217,7 +246,7 @@ $old_items = ! empty($old['items']) && is_array($old['items']) ? array_values($o
 
 <template id="itemRowTemplate">
     <div class="row g-2 align-items-end border-bottom pb-3 mb-3 item-row">
-        <div class="col-md-3">
+        <div class="col-md-2">
             <label class="form-label small">Category</label>
             <select name="items[__INDEX__][category_id]" class="form-select form-select-sm">
                 <option value="">Select</option>
@@ -227,18 +256,31 @@ $old_items = ! empty($old['items']) && is_array($old['items']) ? array_values($o
             </select>
         </div>
         <div class="col-md-2">
-            <label class="form-label small">Purity (e.g. 22K)</label>
-            <input type="text" name="items[__INDEX__][purity_karat]" class="form-control form-control-sm">
+            <label class="form-label small">Purity</label>
+            <select name="items[__INDEX__][purity_karat]" class="form-select form-select-sm item-purity">
+                <option value="">Select</option>
+                <?php foreach ($purity_karats as $karat): ?>
+                    <option value="<?php echo htmlspecialchars($karat['karat']); ?>"><?php echo htmlspecialchars($karat['karat']); ?></option>
+                <?php endforeach; ?>
+            </select>
         </div>
         <div class="col-md-2">
             <label class="form-label small">Gross Weight (g)</label>
-            <input type="number" step="0.001" name="items[__INDEX__][gross_weight]" class="form-control form-control-sm">
+            <input type="number" step="0.001" name="items[__INDEX__][gross_weight]" class="form-control form-control-sm item-gross-weight">
         </div>
         <div class="col-md-2">
             <label class="form-label small">Stone Weight (g)</label>
-            <input type="number" step="0.001" name="items[__INDEX__][stone_weight]" class="form-control form-control-sm">
+            <input type="number" step="0.001" name="items[__INDEX__][stone_weight]" class="form-control form-control-sm item-stone-weight">
         </div>
-        <div class="col-md-2 form-check mb-2">
+        <div class="col-md-2">
+            <label class="form-label small">Net Weight (g)</label>
+            <input type="text" class="form-control form-control-sm item-net-weight" value="0.000" readonly tabindex="-1">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small">Eligible Amount (₹)</label>
+            <input type="text" class="form-control form-control-sm item-eligible-amount" value="0.00" readonly tabindex="-1">
+        </div>
+        <div class="col-md-1 form-check mb-2">
             <input type="checkbox" name="items[__INDEX__][hallmark_flag]" value="1" class="form-check-input">
             <label class="form-check-label small">Hallmarked</label>
         </div>
@@ -282,6 +324,53 @@ $old_items = ! empty($old['items']) && is_array($old['items']) ? array_values($o
         var row = btn.closest('.item-row');
         row.parentNode.removeChild(row);
         toggleRemoveButtons();
+        recalcTotalEligibleAmount();
+    });
+
+    // Latest APPROVED rate/LTV% per karat -- same lookup admin/Loans::store()
+    // applies server-side, mirrored here purely so this preview matches what
+    // submission will actually compute. Not authoritative: the server
+    // recomputes everything from scratch on submit.
+    var goldRatesByKarat = <?php echo json_encode($gold_rates_by_karat); ?>;
+
+    function recalcRow(row) {
+        var gross = parseFloat(row.querySelector('.item-gross-weight').value) || 0;
+        var stone = parseFloat(row.querySelector('.item-stone-weight').value) || 0;
+        var netWeight = Math.max(0, gross - stone);
+        row.querySelector('.item-net-weight').value = netWeight.toFixed(3);
+
+        var karat = row.querySelector('.item-purity').value;
+        var rate = goldRatesByKarat[karat];
+        var eligible = rate ? netWeight * rate.rate_per_gram * (rate.ltv_pct / 100) : 0;
+        row.querySelector('.item-eligible-amount').value = eligible.toFixed(2);
+    }
+
+    var sanctionedAmountField = document.getElementById('sanctionedAmount');
+
+    function recalcTotalEligibleAmount() {
+        var total = 0;
+        itemRows.querySelectorAll('.item-eligible-amount').forEach(function (field) {
+            total += parseFloat(field.value) || 0;
+        });
+        document.getElementById('totalEligibleAmount').textContent = '₹' + total.toFixed(2);
+        sanctionedAmountField.max = total.toFixed(2);
+        return total;
+    }
+
+    itemRows.addEventListener('input', function (e) {
+        if (! e.target.classList.contains('item-gross-weight') && ! e.target.classList.contains('item-stone-weight')) {
+            return;
+        }
+        recalcRow(e.target.closest('.item-row'));
+        recalcTotalEligibleAmount();
+    });
+
+    itemRows.addEventListener('change', function (e) {
+        if (! e.target.classList.contains('item-purity')) {
+            return;
+        }
+        recalcRow(e.target.closest('.item-row'));
+        recalcTotalEligibleAmount();
     });
 
     function toggleRemoveButtons() {
@@ -291,5 +380,20 @@ $old_items = ! empty($old['items']) && is_array($old['items']) ? array_values($o
             removeBtn.style.display = rows.length > 1 ? '' : 'none';
         });
     }
+
+    itemRows.querySelectorAll('.item-row').forEach(recalcRow);
+    recalcTotalEligibleAmount();
+
+    // Client-side convenience only -- the server re-validates this against
+    // the authoritative total (see admin/Loans::store()) regardless.
+    document.getElementById('loanCreateForm').addEventListener('submit', function (e) {
+        var total = recalcTotalEligibleAmount();
+        var sanctioned = parseFloat(sanctionedAmountField.value) || 0;
+        if (sanctioned <= 0 || sanctioned > total) {
+            e.preventDefault();
+            alert('Sanctioned amount must be greater than 0 and no more than the total eligible amount (₹' + total.toFixed(2) + ').');
+            sanctionedAmountField.focus();
+        }
+    });
 })();
 </script>

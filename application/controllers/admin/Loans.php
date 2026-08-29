@@ -83,7 +83,7 @@ class Loans extends Admin_Controller
             'page_title' => 'Loan ' . $loan['loan_account_number'],
             'loan' => $loan,
             'jewellery_items' => $this->jewellery_items->for_loan($id),
-            'disbursements' => $this->loan_disbursements->all(array('loan_id' => $id)),
+            'disbursements' => $this->loan_disbursements->for_loan($id),
             'interest_collections' => $this->interest_collections->all(array('loan_id' => $id)),
             'approval_workflow' => $this->loan_approval_workflows->for_loan($id),
             'approval_logs' => $this->loan_approval_logs->for_loan($id),
@@ -188,9 +188,15 @@ class Loans extends Admin_Controller
         $this->render('loan_receipt', array(
             'page_title' => 'Pledge Receipt — ' . ($loan['loan_account_number'] ?? 'Loan #' . $id),
             'loan' => $loan,
+            'customer' => $this->customers->find($loan['customer_id']),
+            'branch' => $this->branches->find($loan['branch_id']),
+            'loan_product' => $this->loan_products->find($loan['loan_product_id']),
             'items' => $this->jewellery_items->with_relations_limited(array('jewellery_items.loan_id' => $id), 100),
             'address' => $this->customer_addresses->first(array('customer_id' => $loan['customer_id'])),
             'charges' => $this->loan_charges->all(array('loan_id' => $id)),
+            // Loan-level pledge photos (not per-item) -- see store()'s
+            // jewellery_photos handling; shown as the receipt's "Asset" photo.
+            'jewellery_photos' => $this->loan_documents->all(array('loan_id' => $id, 'document_type' => 'JEWELLERY_PHOTO'), 'id ASC'),
         ));
     }
 
@@ -327,11 +333,29 @@ class Loans extends Admin_Controller
 
         $old = $this->session->flashdata('old');
 
+        // Same latest-approved-rate lookup store() uses per karat -- built
+        // here too so the "Eligible Amount" preview in the view is computed
+        // with the exact rate/LTV% that submission will actually apply, not
+        // an approximation.
+        $purity_karats = $this->gold_rates->approved_karats();
+        $gold_rates_by_karat = array();
+        foreach ($purity_karats as $k) {
+            $rate = $this->gold_rates->latest_approved($k['karat']);
+            if ($rate) {
+                $gold_rates_by_karat[$k['karat']] = array(
+                    'rate_per_gram' => (float) $rate['rate_per_gram'],
+                    'ltv_pct' => (float) $rate['ltv_pct'],
+                );
+            }
+        }
+
         $this->render('loans_create', array(
             'page_title' => 'New Loan',
             'branches' => $this->branches->all(array(), 'name ASC'),
             'loan_products' => $this->loan_products->all(array('is_active' => 1), 'name ASC'),
             'categories' => $this->jewellery_categories->all(array(), 'name ASC'),
+            'purity_karats' => $purity_karats,
+            'gold_rates_by_karat' => $gold_rates_by_karat,
             'old' => $old ? $old : array(),
         ));
     }
@@ -351,6 +375,7 @@ class Loans extends Admin_Controller
         $branch_id = (string) $this->input->post('branch_id');
         $loan_product_id = (string) $this->input->post('loan_product_id');
         $item_rows = (array) $this->input->post('items');
+        $sanctioned_amount_input = trim((string) $this->input->post('sanctioned_amount'));
 
         $errors = array();
 
@@ -461,11 +486,20 @@ class Loans extends Admin_Controller
         }
 
         $gold_rates_by_karat = array();
+        // Per-item eligible amount, precomputed here (rather than only inside
+        // the transaction below) so sanctioned_amount can be validated against
+        // an authoritative total *before* trans_start() -- this file has no
+        // trans_rollback() path, so every other validation already happens
+        // before the transaction opens; keyed by $item_rows index and reused
+        // as-is in the transaction loop instead of recomputed, so the two
+        // never drift apart.
+        $item_eligible_amounts = array();
 
-        foreach ($item_rows as $row) {
+        foreach ($item_rows as $idx => $row) {
             $category_id = isset($row['category_id']) ? $row['category_id'] : '';
             $purity_karat = isset($row['purity_karat']) ? trim($row['purity_karat']) : '';
             $gross_weight = isset($row['gross_weight']) ? $row['gross_weight'] : '';
+            $stone_weight = isset($row['stone_weight']) && $row['stone_weight'] !== '' ? $row['stone_weight'] : '0';
 
             if ($category_id === '' || ! $this->jewellery_categories->find($category_id)) {
                 $errors[] = 'Each jewellery item must have a valid category.';
@@ -484,6 +518,20 @@ class Loans extends Admin_Controller
                     $errors[] = "No approved gold rate found for {$purity_karat}.";
                 }
             }
+
+            $gold_rate = $purity_karat !== '' ? ($gold_rates_by_karat[$purity_karat] ?? null) : null;
+            if ($gold_rate && is_numeric($gross_weight) && is_numeric($stone_weight)) {
+                $net_weight = max(0.0, (float) $gross_weight - (float) $stone_weight);
+                $item_eligible_amounts[$idx] = round($net_weight * (float) $gold_rate['rate_per_gram'] * ((float) $gold_rate['ltv_pct'] / 100), 2);
+            }
+        }
+
+        $estimated_eligible_amount = array_sum($item_eligible_amounts);
+
+        if ($sanctioned_amount_input === '' || ! is_numeric($sanctioned_amount_input) || (float) $sanctioned_amount_input <= 0) {
+            $errors[] = 'A valid sanctioned amount is required.';
+        } elseif ((float) $sanctioned_amount_input > $estimated_eligible_amount) {
+            $errors[] = 'Sanctioned amount cannot exceed the eligible amount (₹' . number_format($estimated_eligible_amount, 2) . ').';
         }
 
         // Jewellery photos -- loan-level (one set of photos for the whole
@@ -530,6 +578,7 @@ class Loans extends Admin_Controller
             'nominee_id_proof_number' => $nominee_data['id_proof_number'],
             'branch_id' => $branch_id,
             'loan_product_id' => $loan_product_id,
+            'sanctioned_amount' => $sanctioned_amount_input,
             'items' => $item_rows,
         );
 
@@ -664,15 +713,16 @@ class Loans extends Admin_Controller
         $item_ids = array();
         $eligible_amount = 0.0;
 
-        foreach ($item_rows as $row) {
+        foreach ($item_rows as $idx => $row) {
             $purity_karat = trim($row['purity_karat']);
             $gold_rate = $gold_rates_by_karat[$purity_karat];
 
             $gross_weight = (float) $row['gross_weight'];
             $stone_weight = isset($row['stone_weight']) && $row['stone_weight'] !== '' ? (float) $row['stone_weight'] : 0.0;
-            $net_weight = $gross_weight - $stone_weight;
             $eligible_percentage = (float) $gold_rate['ltv_pct']; // approved alongside the gold rate, not hardcoded
-            $item_eligible_amount = round($net_weight * (float) $gold_rate['rate_per_gram'] * ($eligible_percentage / 100), 2);
+            // Reuse the value validated against sanctioned_amount above, rather
+            // than recomputing it, so the two can never drift apart.
+            $item_eligible_amount = $item_eligible_amounts[$idx];
 
             $item_id = $this->jewellery_items->insert(array(
                 'barcode' => $this->generate_barcode(),
@@ -708,10 +758,21 @@ class Loans extends Admin_Controller
             $eligible_amount += $item_eligible_amount;
         }
 
-        $processing_fee = round($eligible_amount * ($product['processing_fee_pct'] / 100), 2);
+        // Sanctioned amount is admin-editable (validated <= eligible_amount
+        // before the transaction started, above) -- BR-005 "loan amount
+        // cannot exceed configured eligible value/LTV" only requires
+        // sanctioned <= eligible, not sanctioned === eligible.
+        $sanctioned_amount = (float) $sanctioned_amount_input;
+
+        $processing_fee = $product['processing_fee_type'] === 'FLAT'
+            ? (float) $product['processing_fee_flat']
+            : round($eligible_amount * ($product['processing_fee_pct'] / 100), 2);
         $gst_amount = round($processing_fee * ($product['gst_pct'] / 100), 2);
         $insurance_amount = round($eligible_amount * ($product['insurance_pct'] / 100), 2);
-        $net_disbursed_amount = $eligible_amount - $processing_fee - $gst_amount - $insurance_amount;
+        // Based on sanctioned_amount, not eligible_amount -- this is the
+        // actual cash paid out at disbursement (see admin/Disbursements.php),
+        // which must never exceed what was actually sanctioned.
+        $net_disbursed_amount = $sanctioned_amount - $processing_fee - $gst_amount - $insurance_amount;
 
         $loan_id = $this->loans->insert(array(
             // loan_account_number is intentionally not set here -- BRD §9
@@ -722,7 +783,7 @@ class Loans extends Admin_Controller
             'branch_id' => $branch_id,
             'loan_product_id' => $product['id'],
             'eligible_amount' => $eligible_amount,
-            'sanctioned_amount' => $eligible_amount,
+            'sanctioned_amount' => $sanctioned_amount,
             'interest_rate_pct' => $product['interest_rate_pct'],
             'processing_fee' => $processing_fee,
             'gst_amount' => $gst_amount,

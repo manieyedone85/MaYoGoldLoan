@@ -120,6 +120,8 @@ class Master extends Api_Controller
             'interest_type' => $data['interest_type'],
             'tenure_months' => $data['tenure_months'],
             'processing_fee_pct' => $data['processing_fee_pct'] ?? 0,
+            'processing_fee_type' => in_array($data['processing_fee_type'] ?? null, array('PERCENTAGE', 'FLAT'), true) ? $data['processing_fee_type'] : 'PERCENTAGE',
+            'processing_fee_flat' => $data['processing_fee_flat'] ?? 0,
             'gst_pct' => $data['gst_pct'] ?? 18.00,
             'insurance_pct' => $data['insurance_pct'] ?? 0,
         ));
@@ -165,6 +167,8 @@ class Master extends Api_Controller
             'interest_type' => $data['interest_type'],
             'tenure_months' => $data['tenure_months'],
             'processing_fee_pct' => $data['processing_fee_pct'] ?? $loan_product['processing_fee_pct'],
+            'processing_fee_type' => in_array($data['processing_fee_type'] ?? null, array('PERCENTAGE', 'FLAT'), true) ? $data['processing_fee_type'] : $loan_product['processing_fee_type'],
+            'processing_fee_flat' => $data['processing_fee_flat'] ?? $loan_product['processing_fee_flat'],
             'gst_pct' => $data['gst_pct'] ?? $loan_product['gst_pct'],
             'insurance_pct' => $data['insurance_pct'] ?? $loan_product['insurance_pct'],
             'is_active' => isset($data['is_active']) ? ($data['is_active'] ? 1 : 0) : $loan_product['is_active'],

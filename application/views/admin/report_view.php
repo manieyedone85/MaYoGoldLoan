@@ -45,7 +45,8 @@
     <a href="<?php echo base_url('admin/reports/export/' . $code . '?' . http_build_query($filters)); ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-file-earmark-excel"></i> Download Excel</a>
 </div>
 
-<?php foreach ($tables as $table): ?>
+<?php $last_table_index = count($tables) - 1; ?>
+<?php foreach ($tables as $i => $table): ?>
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-header bg-white fw-semibold"><?php echo htmlspecialchars($table['title']); ?></div>
         <div class="table-responsive">
@@ -66,5 +67,19 @@
                 </tbody>
             </table>
         </div>
+        <?php if ($i === $last_table_index && ! empty($pagination) && $pagination['last_page'] > 1): ?>
+            <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="text-muted small">
+                    Page <?php echo (int) $pagination['page']; ?> of <?php echo (int) $pagination['last_page']; ?> (<?php echo (int) $pagination['total']; ?> total)
+                </div>
+                <ul class="pagination pagination-sm mb-0 flex-wrap">
+                    <?php for ($p = 1; $p <= $pagination['last_page']; $p++): ?>
+                        <li class="page-item <?php echo $p == $pagination['page'] ? 'active' : ''; ?>">
+                            <a class="page-link" href="<?php echo base_url('admin/reports/view/' . $code . '?' . http_build_query(array_merge($filters, array('page' => $p)))); ?>"><?php echo $p; ?></a>
+                        </li>
+                    <?php endfor; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
     </div>
 <?php endforeach; ?>

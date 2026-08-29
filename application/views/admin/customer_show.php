@@ -6,9 +6,27 @@
 <a href="<?php echo base_url('admin/customers'); ?>" class="btn btn-sm btn-outline-secondary mb-3"><i class="bi bi-arrow-left"></i> Back to Customers</a>
 
 <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-white fw-semibold"><?php echo htmlspecialchars($customer['name']); ?> (<?php echo htmlspecialchars($customer['customer_code']); ?>)</div>
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold"><?php echo htmlspecialchars($customer['name']); ?> (<?php echo htmlspecialchars($customer['customer_code']); ?>)</span>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editDetailsModal"><i class="bi bi-pencil"></i> Edit Details</button>
+    </div>
     <div class="card-body">
         <div class="row g-3">
+            <div class="col-md-4">
+                <strong>Photo:</strong>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    <?php if (! empty($customer['photo_path'])): ?>
+                        <a href="<?php echo base_url('admin/customers/' . $customer['id'] . '/photo'); ?>" target="_blank">
+                            <img src="<?php echo base_url('admin/customers/' . $customer['id'] . '/photo'); ?>" alt="Customer photo" class="rounded" style="height:48px;width:48px;object-fit:cover;">
+                        </a>
+                    <?php else: ?>
+                        <div class="border rounded d-flex align-items-center justify-content-center text-muted small" style="height:48px;width:48px;">—</div>
+                    <?php endif; ?>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#updatePhotoModal">
+                        <i class="bi bi-camera"></i> <?php echo ! empty($customer['photo_path']) ? 'Update' : 'Upload'; ?>
+                    </button>
+                </div>
+            </div>
             <div class="col-md-4"><strong>Mobile:</strong> <?php echo htmlspecialchars($customer['mobile']); ?></div>
             <div class="col-md-4"><strong>Email:</strong> <?php echo htmlspecialchars($customer['email'] ?? '—'); ?></div>
             <div class="col-md-4"><strong>DOB:</strong> <?php echo ! empty($customer['dob']) ? htmlspecialchars(date('d-M-Y', strtotime($customer['dob']))) : '—'; ?></div>
@@ -137,6 +155,46 @@
             </tbody>
         </table>
     </div>
+</div>
+
+<div class="modal fade" id="editDetailsModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <form method="POST" action="<?php echo base_url('admin/customers/' . $customer['id'] . '/details'); ?>">
+            <div class="modal-header"><h5 class="modal-title">Edit Customer Details</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" value="<?php echo htmlspecialchars($customer['email'] ?? ''); ?>">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">PAN Number</label>
+                    <input type="text" name="pan_number" class="form-control text-uppercase" maxlength="10" pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}" value="<?php echo htmlspecialchars($customer['pan_number'] ?? ''); ?>" placeholder="ABCDE1234F">
+                </div>
+                <div class="mb-1">
+                    <label class="form-label">Aadhaar Number</label>
+                    <input type="text" name="aadhaar_number" class="form-control" maxlength="12" pattern="\d{12}" placeholder="Leave blank to keep unchanged">
+                    <div class="form-text">Current on file: last 4 digits <?php echo htmlspecialchars($customer['aadhaar_last4'] ?? '—'); ?>. Only the last 4 digits and a hash are stored -- the full number is never persisted.</div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-dark">Save</button></div>
+        </form>
+    </div></div>
+</div>
+
+<div class="modal fade" id="updatePhotoModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <form method="POST" action="<?php echo base_url('admin/customers/' . $customer['id'] . '/photo'); ?>" enctype="multipart/form-data">
+            <div class="modal-header"><h5 class="modal-title">Update Customer Photo</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-1">
+                    <label class="form-label">Photo</label>
+                    <input type="file" name="photo" class="form-control" accept=".jpg,.jpeg,.png,.webp" required>
+                    <div class="form-text">JPG, JPEG, PNG, or WEBP. Max 5MB.</div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-dark">Upload</button></div>
+        </form>
+    </div></div>
 </div>
 
 <div class="modal fade" id="addNomineeModal" tabindex="-1">
