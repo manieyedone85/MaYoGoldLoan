@@ -261,6 +261,10 @@ class Report_model extends MY_Model
         if (! empty($by_user)) {
             $users = $this->db->from('user_master')->where_in('id', array_keys($by_user))->get()->result_array();
             foreach ($users as $user) {
+                if ($user['is_super_admin']) {
+                    unset($by_user[$user['id']]);
+                    continue;
+                }
                 $by_user[$user['id']]['name'] = $user['name'];
                 $by_user[$user['id']]['employee_code'] = $user['employee_code'];
             }

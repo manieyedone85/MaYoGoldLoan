@@ -13,6 +13,9 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  */
 class Customer extends Api_Controller
 {
+    /** Allowed customers.profession_type values -- plain VARCHAR, app-enforced (see docs/migrations/2026_08_26_customer_profile_fields.sql). Mirrors admin\Loans::PROFESSION_TYPES. */
+    const PROFESSION_TYPES = array('SALARIED', 'SELF_EMPLOYED', 'BUSINESS', 'AGRICULTURE', 'RETIRED', 'OTHER');
+
     public function __construct()
     {
         parent::__construct();
@@ -49,6 +52,12 @@ class Customer extends Api_Controller
         if (! empty($data['gender']) && ! in_array($data['gender'], array('MALE', 'FEMALE', 'OTHER'), true)) {
             return json_error('gender must be one of MALE, FEMALE, OTHER.');
         }
+        if (! empty($data['profession_type']) && ! in_array($data['profession_type'], self::PROFESSION_TYPES, true)) {
+            return json_error('profession_type must be one of ' . implode(', ', self::PROFESSION_TYPES) . '.');
+        }
+        if (isset($data['income']) && $data['income'] !== '' && (! is_numeric($data['income']) || (float) $data['income'] < 0)) {
+            return json_error('income must be a non-negative number.');
+        }
         if (empty($data['branch_id']) || ! $this->branches->find($data['branch_id'])) {
             return json_error('branch_id is required and must reference an existing branch.');
         }
@@ -69,6 +78,31 @@ class Customer extends Api_Controller
             return json_error('address.pincode is required and must be at most 10 characters.');
         }
 
+        // File I/O happens outside the DB transaction below, and before it --
+        // a failed upload must not leave a half-started transaction. Same
+        // uploads/customer-photos directory as admin/Loans::store().
+        $photo_path = null;
+        if (! empty($_FILES['photo']['name'])) {
+            $upload_dir = FCPATH . 'uploads/customer-photos';
+            if (! is_dir($upload_dir)) {
+                mkdir($upload_dir, 0775, true);
+            }
+
+            $this->load->library('upload', array(
+                'upload_path' => $upload_dir,
+                'allowed_types' => 'jpg|jpeg|png|webp',
+                'max_size' => 5120,
+                'encrypt_name' => true,
+            ));
+
+            if (! $this->upload->do_upload('photo')) {
+                return json_error($this->upload->display_errors('', ''));
+            }
+
+            $uploaded_photo = $this->upload->data();
+            $photo_path = 'customer-photos/' . $uploaded_photo['file_name'];
+        }
+
         $this->db->trans_start();
 
         $customer_id = $this->customers->insert(array(
@@ -78,6 +112,11 @@ class Customer extends Api_Controller
             'email' => $data['email'] ?? null,
             'dob' => $data['dob'] ?? null,
             'gender' => $data['gender'] ?? null,
+            'father_name' => $data['father_name'] ?? null,
+            'profession_type' => $data['profession_type'] ?? null,
+            'profession_details' => $data['profession_details'] ?? null,
+            'income' => (isset($data['income']) && $data['income'] !== '') ? $data['income'] : null,
+            'photo_path' => $photo_path,
             'branch_id' => $data['branch_id'],
             'registered_by' => $user['id'],
             'kyc_status' => 'PENDING',
