@@ -16,7 +16,7 @@ class Dashboard extends Admin_Controller
         $this->load->model('Role_model', 'roles');
         $customer_role = $this->roles->find_by_code('CUSTOMER');
 
-        $employee_count = $this->db->from('users');
+        $employee_count = $this->db->from('user_master')->where('is_super_admin', 0);
         if ($customer_role) {
             $employee_count->where('role_id !=', $customer_role['id']);
         }

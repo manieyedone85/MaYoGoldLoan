@@ -49,6 +49,7 @@ class User_model extends MY_Model
             if ($customer_role) {
                 $query->where('user_master.role_id !=', $customer_role['id']);
             }
+            $query->where('user_master.is_super_admin', 0);
             if ($search !== '') {
                 $query->group_start()
                     ->like('user_master.name', $search)
