@@ -25,9 +25,23 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 */
 // $config['base_url'] = 'http://www.acservicecenterinchennai.in/invoice';
 
-$config['base_url'] = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == "on") ? "https" : "http");
-$config['base_url'] .= "://".$_SERVER['HTTP_HOST'];
-$config['base_url'] .= str_replace(basename($_SERVER['SCRIPT_NAME']),"",$_SERVER['SCRIPT_NAME']);
+// Public base URL. Prefer pinning it via CI_BASE_URL in .env (prevents Host-header
+// spoofing). Otherwise derive it from the request, but only for hosts that look
+// like real hostnames (and, when CI_ALLOWED_HOSTS is set, only allow-listed ones).
+$_ci_https = (! empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off');
+if (getenv('CI_BASE_URL')) {
+	$config['base_url'] = rtrim(getenv('CI_BASE_URL'), '/') . '/';
+} else {
+	$_ci_host = isset($_SERVER['HTTP_HOST']) ? strtolower($_SERVER['HTTP_HOST']) : 'localhost';
+	$_ci_allowed = array_filter(array_map('trim', explode(',', strtolower((string) getenv('CI_ALLOWED_HOSTS')))));
+	if (! preg_match('/^[a-z0-9.\-]+(:\d{1,5})?$/', $_ci_host)
+		|| ($_ci_allowed && ! in_array(preg_replace('/:\d+$/', '', $_ci_host), $_ci_allowed, TRUE))) {
+		header('HTTP/1.1 400 Bad Request');
+		exit('Invalid host.');
+	}
+	$config['base_url'] = ($_ci_https ? 'https' : 'http') . '://' . $_ci_host;
+	$config['base_url'] .= str_replace(basename($_SERVER['SCRIPT_NAME']), '', $_SERVER['SCRIPT_NAME']);
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -226,7 +240,7 @@ $config['allow_get_array'] = TRUE;
 | your log files will fill up very fast.
 |
 */
-$config['log_threshold'] = array(1,2,3);
+$config['log_threshold'] = (ENVIRONMENT === 'production') ? 1 : array(1,2,3); // prod: errors only
 
 /*
 |--------------------------------------------------------------------------
@@ -387,7 +401,7 @@ $config['sess_expiration'] = 7200;
 $config['sess_save_path'] = NULL;
 $config['sess_match_ip'] = FALSE;
 $config['sess_time_to_update'] = 300;
-$config['sess_regenerate_destroy'] = FALSE;
+$config['sess_regenerate_destroy'] = FALSE; // login calls sess_regenerate(TRUE) explicitly
 
 /*
 |--------------------------------------------------------------------------
@@ -407,8 +421,8 @@ $config['sess_regenerate_destroy'] = FALSE;
 $config['cookie_prefix']	= '';
 $config['cookie_domain']	= '';
 $config['cookie_path']		= '/';
-$config['cookie_secure']	= FALSE;
-$config['cookie_httponly'] 	= FALSE;
+$config['cookie_secure']   = $_ci_https; // auto: true whenever served over HTTPS
+$config['cookie_httponly'] 	= TRUE;
 
 /*
 |--------------------------------------------------------------------------
@@ -452,11 +466,11 @@ $config['global_xss_filtering'] = FALSE;
 | 'csrf_regenerate' = Regenerate token on every submission
 | 'csrf_exclude_uris' = Array of URIs which ignore CSRF checks
 */
-$config['csrf_protection'] = FALSE;
+$config['csrf_protection'] = TRUE;
 $config['csrf_token_name'] = 'csrf_test_name';
 $config['csrf_cookie_name'] = 'csrf_cookie_name';
 $config['csrf_expire'] = 7200;
-$config['csrf_regenerate'] = TRUE;
+$config['csrf_regenerate'] = FALSE; // per-session token: keeps multi-tab admin work usable
 $config['csrf_exclude_uris'] = array('api/.*');
 
 /*

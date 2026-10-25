@@ -25,3 +25,11 @@ user_guide_src/cilexer/pycilexer.egg-info/*
 *.stTheme.cache
 *.sublime-workspace
 *.sublime-project
+
+# Secrets / local runtime files
+.env
+.env.*
+!.env.example
+error_log
+*.log
+application/logs/api/

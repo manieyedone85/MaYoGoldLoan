@@ -8,6 +8,9 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  */
 class Auth extends Api_Controller
 {
+    const LOCK_WINDOW = 900;      // seconds, login/OTP-verify failure window
+    const OTP_SEND_WINDOW = 600;  // seconds, OTP send window
+
     public function __construct()
     {
         parent::__construct();
@@ -24,9 +27,31 @@ class Auth extends Api_Controller
             return json_error('mobile, device_id, and either password or mpin are required.');
         }
 
+        if (! is_scalar($data['mobile']) || ! is_scalar($data['device_id'])
+            || (! empty($data['password']) && ! is_scalar($data['password']))
+            || (! empty($data['mpin']) && ! is_scalar($data['mpin']))) {
+            return json_error('Invalid request.');
+        }
+
+        // Brute-force protection (password and MPIN guesses): per account + per client IP.
+        $this->load->library('throttle');
+        $acct_key = 'api_login:acct:' . strtolower(trim((string) $data['mobile']));
+        $ip_key = 'api_login:ip:' . $this->input->ip_address();
+        if ($this->throttle->blocked($acct_key, 10, self::LOCK_WINDOW) || $this->throttle->blocked($ip_key, 40, self::LOCK_WINDOW)) {
+            return json_error('Too many failed login attempts. Try again later.', 429);
+        }
+
         $user = $this->users->find_by_mobile($data['mobile']);
 
+        if (! $user) {
+            // Equalise timing so response time doesn't reveal whether the mobile number exists.
+            password_verify((string) ($data['password'] ?? $data['mpin']), '$2y$10$KCabpgd6nfIzx6PdjFHcgOEqpww.vs39qrm7rR1TWcXQSevoDWfla');
+        }
+
         if (! $user || ! $user['is_active']) {
+            $this->throttle->hit($acct_key, self::LOCK_WINDOW);
+            $this->throttle->hit($ip_key, self::LOCK_WINDOW);
+
             return json_error('Invalid credentials.', 401);
         }
 
@@ -38,9 +63,13 @@ class Auth extends Api_Controller
         }
 
         if (! $ok) {
+            $this->throttle->hit($acct_key, self::LOCK_WINDOW);
+            $this->throttle->hit($ip_key, self::LOCK_WINDOW);
+
             return json_error('Invalid credentials.', 401);
         }
 
+        $this->throttle->clear($acct_key);
         $this->bind_device($user['id'], $data['device_id'], $data);
         $issued = $this->token_auth->issue($user['id'], 'mobile-app');
         $this->users->update($user['id'], array('last_login_at' => date('Y-m-d H:i:s')));
@@ -72,6 +101,19 @@ class Auth extends Api_Controller
         if (empty($data['mobile']) || empty($data['purpose'])) {
             return json_error('mobile and purpose are required.');
         }
+        if (! is_scalar($data['mobile']) || ! is_scalar($data['purpose'])) {
+            return json_error('Invalid request.');
+        }
+
+        // Anti SMS-bombing / OTP-farming: every send counts, per mobile and per IP.
+        $this->load->library('throttle');
+        $send_mobile_key = 'otp_send:mobile:' . strtolower(trim((string) $data['mobile']));
+        $send_ip_key = 'otp_send:ip:' . $this->input->ip_address();
+        if ($this->throttle->blocked($send_mobile_key, 3, self::OTP_SEND_WINDOW) || $this->throttle->blocked($send_ip_key, 20, self::OTP_SEND_WINDOW)) {
+            return json_error('Too many OTP requests. Try again later.', 429);
+        }
+        $this->throttle->hit($send_mobile_key, self::OTP_SEND_WINDOW);
+        $this->throttle->hit($send_ip_key, self::OTP_SEND_WINDOW);
 
         $otp = (string) random_int(100000, 999999);
 
@@ -101,12 +143,29 @@ class Auth extends Api_Controller
         if (empty($data['mobile']) || empty($data['purpose']) || empty($data['otp'])) {
             return json_error('mobile, purpose, and otp are required.');
         }
+        if (! is_scalar($data['mobile']) || ! is_scalar($data['purpose']) || ! is_scalar($data['otp'])) {
+            return json_error('Invalid request.');
+        }
+
+        // A 6-digit code must not be brute-forceable inside its 5-minute life: 5 wrong guesses per
+        // mobile+purpose per window (account-scoped, so rotating IPs doesn't help), plus a per-IP cap.
+        $this->load->library('throttle');
+        $verify_key = 'otp_verify:' . strtolower(trim((string) $data['mobile'])) . ':' . $data['purpose'];
+        $verify_ip_key = 'otp_verify:ip:' . $this->input->ip_address();
+        if ($this->throttle->blocked($verify_key, 5, self::LOCK_WINDOW) || $this->throttle->blocked($verify_ip_key, 30, self::LOCK_WINDOW)) {
+            return json_error('Too many invalid OTP attempts. Request a new OTP later.', 429);
+        }
 
         $record = $this->otps->latest_pending($data['mobile'], $data['purpose']);
 
-        if (! $record || ! password_verify($data['otp'], $record['otp_hash'])) {
+        if (! $record || ! password_verify((string) $data['otp'], $record['otp_hash'])) {
+            $this->throttle->hit($verify_key, self::LOCK_WINDOW);
+            $this->throttle->hit($verify_ip_key, self::LOCK_WINDOW);
+
             return json_error('Invalid or expired OTP.', 422);
         }
+
+        $this->throttle->clear($verify_key);
 
         $this->otps->update($record['id'], array('is_verified' => 1));
 

@@ -164,6 +164,7 @@ class Admin_Controller extends CI_Controller
         $this->load->model('User_model', 'users');
         $this->load->model('Role_model', 'roles');
         $this->load->helper('url');
+        $this->load->helper('csrf');
 
         $this->require_admin_session();
     }
@@ -252,6 +253,7 @@ class Admin_Controller extends CI_Controller
             'view_data' => $data,
         );
 
-        $this->load->view('admin/_layout', $layout_data);
+        // Render to a string so inject_csrf_fields() can add the CSRF token to every POST form.
+        $this->output->set_output(inject_csrf_fields($this->load->view('admin/_layout', $layout_data, true)));
     }
 }

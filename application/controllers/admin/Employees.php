@@ -57,7 +57,7 @@ class Employees extends Admin_Controller
             return;
         }
 
-        $this->users->insert(array(
+        $new_id = $this->users->insert(array(
             'employee_code' => $data['employee_code'],
             'name' => $data['name'],
             'mobile' => $data['mobile'],
@@ -67,6 +67,8 @@ class Employees extends Admin_Controller
             'branch_id' => $data['branch_id'] !== '' ? $data['branch_id'] : null,
             'is_active' => $data['is_active'] ? 1 : 0,
         ));
+
+        $this->audit_log('User', $new_id, 'EMPLOYEE_CREATE', null, $this->audit_snapshot($this->users->find($new_id)));
 
         $this->session->set_flashdata('status', 'Employee created.');
         redirect('admin/employees');
@@ -83,8 +85,22 @@ class Employees extends Admin_Controller
             return;
         }
 
+        if (! $this->can_manage($existing)) {
+            return $this->deny_admin_target();
+        }
+
         $data = $this->collect_input();
         $errors = $this->validate_employee($data, $id);
+
+        // Nobody may change their own role or deactivate themselves from this screen.
+        if ((int) $id === (int) $this->user['id']) {
+            if ((int) $data['role_id'] !== (int) $existing['role_id']) {
+                $errors[] = 'You cannot change your own role.';
+            }
+            if (! $data['is_active']) {
+                $errors[] = 'You cannot deactivate your own account.';
+            }
+        }
 
         if ($errors) {
             $this->session->set_flashdata('error', implode(' ', $errors));
@@ -109,6 +125,8 @@ class Employees extends Admin_Controller
 
         $this->users->update($id, $update);
 
+        $this->audit_log('User', $id, 'EMPLOYEE_UPDATE', $this->audit_snapshot($existing), $this->audit_snapshot($this->users->find($id)) + ($data['password'] !== '' ? array('password_reset' => true) : array()));
+
         $this->session->set_flashdata('status', 'Employee updated.');
         redirect('admin/employees');
     }
@@ -124,7 +142,19 @@ class Employees extends Admin_Controller
             return;
         }
 
+        if (! $this->can_manage($user)) {
+            return $this->deny_admin_target();
+        }
+        if ((int) $id === (int) $this->user['id']) {
+            $this->session->set_flashdata('error', 'You cannot deactivate your own account.');
+            redirect('admin/employees');
+
+            return;
+        }
+
         $this->users->update($id, array('is_active' => $user['is_active'] ? 0 : 1));
+
+        $this->audit_log('User', $id, 'EMPLOYEE_TOGGLE_ACTIVE', array('is_active' => (int) $user['is_active']), array('is_active' => $user['is_active'] ? 0 : 1));
 
         $this->session->set_flashdata('status', 'Employee status updated.');
         redirect('admin/employees');
@@ -179,8 +209,54 @@ class Employees extends Admin_Controller
 
         if (empty($data['role_id'])) {
             $errors[] = 'Role is required.';
+        } else {
+            $role = $this->roles->find((int) $data['role_id']);
+            if (! $role) {
+                $errors[] = 'Selected role does not exist.';
+            } elseif ($role['code'] === 'ADMIN' && $this->user['role_code'] !== 'ADMIN') {
+                // Only an ADMIN may mint another ADMIN -- otherwise OPERATIONS could self-escalate.
+                $errors[] = 'Only an administrator can assign the ADMIN role.';
+            }
+        }
+
+        if ($data['branch_id'] !== '' && ! $this->branches->find((int) $data['branch_id'])) {
+            $errors[] = 'Selected branch does not exist.';
         }
 
         return $errors;
+    }
+
+    /**
+     * ADMIN accounts (and super-admin accounts) may only be edited, reset or
+     * (de)activated by an ADMIN (super admins only by a super admin) -- a
+     * lower role with access to this screen must not be able to take over a
+     * more privileged account by resetting its password.
+     */
+    private function can_manage($target)
+    {
+        if (! empty($target['is_super_admin']) && empty($this->user['is_super_admin'])) {
+            return false;
+        }
+
+        $target_role = $this->roles->find($target['role_id']);
+        if ($target_role && $target_role['code'] === 'ADMIN' && $this->user['role_code'] !== 'ADMIN') {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function deny_admin_target()
+    {
+        $this->session->set_flashdata('error', 'You are not allowed to modify administrator accounts.');
+        redirect('admin/employees');
+    }
+
+    /** Audit-log payload for a user row: never includes password/MPIN hashes. */
+    private function audit_snapshot($user)
+    {
+        unset($user['password'], $user['mpin_hash'], $user['remember_token']);
+
+        return $user;
     }
 }

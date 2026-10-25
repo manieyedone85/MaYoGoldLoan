@@ -1,8 +1,4 @@
 <?php
-//  echo $_SERVER['CI_ENV'];die();
- phpinfo();
-//die($_SERVER['REQUEST_URI']);
-//phpinfo();
 
 /**
  * CodeIgniter
@@ -75,8 +71,41 @@ if (is_file($env_file)) {
         $_ENV[$name] = $value;
     }
 }
-	define('ENVIRONMENT', isset($_SERVER['CI_ENV']) ? $_SERVER['CI_ENV'] : 'development');
-	// define('ENVIRONMENT', 'production');
+
+// Fail closed: anything that doesn't explicitly say otherwise (nginx, php -S,
+// Apache without mod_env, a missing .env) runs as production, so errors and DB
+// debug output are never shown to visitors by accident. Set CI_ENV=development
+// in .env for local work.
+define('ENVIRONMENT', getenv('CI_ENV') ?: (isset($_SERVER['CI_ENV']) ? $_SERVER['CI_ENV'] : 'production'));
+
+// ---------------------------------------------------------------
+// Hardening: PHP session ini + baseline security response headers
+// ---------------------------------------------------------------
+$is_https = (! empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off');
+ini_set('session.use_strict_mode', '1');
+ini_set('session.use_only_cookies', '1');
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_samesite', 'Lax');
+if ($is_https) {
+    ini_set('session.cookie_secure', '1');
+}
+
+if (PHP_SAPI !== 'cli' && ! headers_sent()) {
+    header_remove('X-Powered-By');
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: DENY');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: camera=(self), microphone=(), geolocation=(self), payment=()');
+    header('Cross-Origin-Opener-Policy: same-origin');
+    // The views use inline handlers/styles and Bootstrap from jsdelivr, hence
+    // 'unsafe-inline'; framing, base-uri, form targets, plugins and any other
+    // third-party origin are locked down.
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' data: https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+    if ($is_https) {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+    }
+}
+
 /*
  *---------------------------------------------------------------
  * ERROR REPORTING

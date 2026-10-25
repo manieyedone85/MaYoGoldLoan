@@ -1988,36 +1988,6 @@ function fileUpload($field_name = '', $target_md = '', $file_name = '', $thumb =
 
 
 
-function CallAPI($method, $url, $data = false)
-{   
-	$curl = curl_init();
-	switch ($method)
-	{   
-	  case "POST":
-		  curl_setopt($curl, CURLOPT_POST, 1);
-		  if ($data)
-			  curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
-		  break;
-	  case "PUT":
-		  curl_setopt($curl, CURLOPT_PUT, 1);
-		  break;
-	  default:
-		  if ($data)
-			  $url = sprintf("%s?%s", $url, http_build_query($data));
-	}
-	//curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json',  'Authorization: Basic NGEwMGZmMjItY2NkNy0xMWUzLTk5ZDUtMDAwYzI5NDBlNjJj'));
-	curl_setopt($curl, CURLOPT_HTTPHEADER, array());
-	curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-	curl_setopt($curl, CURLOPT_HEADER, FALSE);
-	curl_setopt($curl, CURLOPT_USERPWD, "");
-	curl_setopt($curl, CURLOPT_URL, $url);
-	curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
-	curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-	$result = curl_exec($curl);
-	curl_close($curl);
-	return $result;
-}
-
 function getDataByColumn($tableName='',$column='',$columnValue='')
 {  
 	$CI = get_instance();
@@ -2085,55 +2055,6 @@ function addEditRowByTable($tableName='',$params=array(),$idName='',$id='',$matc
 		$CI->db->where($idName, $id);
 		$CI->db->update($tableName, $params);
 	}
-}
-
-function sendPushNotification($type,$value=array(),$option=array())
-{
-	$content = array("en" => "KPMG new message.");
-	$data= array("type" => "kpmg");
-	
-	switch ($type) {
-		case "event":
-			$content = array(
-				"en" => "New event."
-			);
-			$data= array("type" => "event",'id'=>$option['id']);
-			break;
-		case "news":
-			$content = array(
-				"en" => "New news."
-			);
-			$data= array("type" => "news",'id'=>$option['id']);
-			break;
-		
-		default:
-			$content = array("en" => "KPMG new message.");
-			$data= array("type" => "kpmg");
-	} 
-	
-	$fields = array(
-		'app_id' => "f2d65dcb-d815-4965-bd50-a32717f72eb8",
-		'include_player_ids' => $value,
-		'data' => $data,
-		'isAndroid' => true,
-		'contents' => $content
-	);
-	
-	$fields = json_encode($fields);
-
-	$ch = curl_init();
-	curl_setopt($ch, CURLOPT_URL, "https://gamethrive.com/api/v1/notifications");
-	curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json',
-						   'Authorization: Basic NGEwMGZmMjItY2NkNy0xMWUzLTk5ZDUtMDAwYzI5NDBlNjJj'));
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-	curl_setopt($ch, CURLOPT_HEADER, FALSE);
-	curl_setopt($ch, CURLOPT_POST, TRUE);
-	curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
-	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
-	$response = curl_exec($ch);
-	curl_close($ch);
-	//echo $response;
-	return $response;
 }
 
 function convert_number_to_words_us($number) {

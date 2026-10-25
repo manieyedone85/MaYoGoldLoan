@@ -1,0 +1,12 @@
+# User-supplied files: never execute scripts from here.
+<FilesMatch "\.(php[0-9]?|phtml|phar|pl|py|cgi|sh|jsp|asp|aspx)$">
+    <IfModule authz_core_module>
+        Require all denied
+    </IfModule>
+    <IfModule !authz_core_module>
+        Deny from all
+    </IfModule>
+</FilesMatch>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>

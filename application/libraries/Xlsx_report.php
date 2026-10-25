@@ -20,7 +20,7 @@ class Xlsx_report
 
             $column_count = count($sheet['headers']);
             foreach ($sheet['headers'] as $col => $header) {
-                $worksheet->setCellValueByColumnAndRow($col + 1, 1, $header);
+                $this->_set_cell($worksheet, $col + 1, 1, $header);
             }
             if ($column_count > 0) {
                 $last_column = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($column_count);
@@ -31,7 +31,7 @@ class Xlsx_report
             foreach ($sheet['rows'] as $row) {
                 $col = 1;
                 foreach ($row as $value) {
-                    $worksheet->setCellValueByColumnAndRow($col, $row_num, $value);
+                    $this->_set_cell($worksheet, $col, $row_num, $value);
                     $col++;
                 }
                 $row_num++;
@@ -55,6 +55,26 @@ class Xlsx_report
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
         $writer->save('php://output');
         exit;
+    }
+
+    /**
+     * Spreadsheet formula (CSV/DDE) injection guard. PhpSpreadsheet's default
+     * value binder turns any string starting with "=" into a live formula, so a
+     * customer name like =HYPERLINK(...) or +cmd|... typed into the app would
+     * execute when staff open an export. Non-numeric text that starts with a
+     * formula trigger (= + - @ tab CR) is therefore written as an explicit
+     * string cell; real numbers (including numeric strings like "-500.00") keep
+     * their normal numeric handling.
+     */
+    private function _set_cell($worksheet, $col, $row, $value)
+    {
+        if (is_string($value) && ! is_numeric($value) && preg_match('/^[=+\-@\t\r]/', $value)) {
+            $worksheet->setCellValueExplicitByColumnAndRow($col, $row, $value, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+
+            return;
+        }
+
+        $worksheet->setCellValueByColumnAndRow($col, $row, $value);
     }
 
     /** Excel sheet titles: max 31 chars, no \ / ? * [ ] : characters. */
