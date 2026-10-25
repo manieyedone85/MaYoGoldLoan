@@ -519,6 +519,7 @@ class Loans extends Admin_Controller
             $purity_karat = isset($row['purity_karat']) ? trim($row['purity_karat']) : '';
             $gross_weight = isset($row['gross_weight']) ? $row['gross_weight'] : '';
             $stone_weight = isset($row['stone_weight']) && $row['stone_weight'] !== '' ? $row['stone_weight'] : '0';
+            $quantity = isset($row['quantity']) && $row['quantity'] !== '' ? $row['quantity'] : '1';
 
             if ($category_id === '' || ! $this->jewellery_categories->find($category_id)) {
                 $errors[] = 'Each jewellery item must have a valid category.';
@@ -528,6 +529,9 @@ class Loans extends Admin_Controller
             }
             if ($gross_weight === '' || ! is_numeric($gross_weight) || (float) $gross_weight < 0.001) {
                 $errors[] = 'Each jewellery item must have a gross weight of at least 0.001g.';
+            }
+            if (! ctype_digit((string) $quantity) || (int) $quantity < 1) {
+                $errors[] = 'Each jewellery item must have a quantity of at least 1.';
             }
 
             if ($purity_karat !== '' && ! array_key_exists($purity_karat, $gold_rates_by_karat)) {
@@ -738,6 +742,7 @@ class Loans extends Admin_Controller
 
             $gross_weight = (float) $row['gross_weight'];
             $stone_weight = isset($row['stone_weight']) && $row['stone_weight'] !== '' ? (float) $row['stone_weight'] : 0.0;
+            $quantity = isset($row['quantity']) && $row['quantity'] !== '' ? (int) $row['quantity'] : 1;
             $eligible_percentage = (float) $gold_rate['ltv_pct']; // approved alongside the gold rate, not hardcoded
             // Reuse the value validated against sanctioned_amount above, rather
             // than recomputing it, so the two can never drift apart.
@@ -747,6 +752,7 @@ class Loans extends Admin_Controller
                 'barcode' => $this->generate_barcode(),
                 'customer_id' => $customer_id,
                 'category_id' => $row['category_id'],
+                'quantity' => $quantity,
                 'hallmark_flag' => ! empty($row['hallmark_flag']) ? 1 : 0,
                 'gross_weight' => $gross_weight,
                 'stone_weight' => $stone_weight,

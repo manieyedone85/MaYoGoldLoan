@@ -113,7 +113,10 @@ approved_by (FK users, nullable), approved_at (nullable), timestamps
 
 ## jewellery_items
 id, barcode (unique), customer_id (FK customers), category_id (FK
-jewellery_categories), hallmark_flag (bool), gross_weight (decimal 8,3), stone_weight
+jewellery_categories), quantity (int unsigned, default 1 -- number of pieces on this
+line; purely descriptive, does not factor into eligible_amount -- added by
+docs/migrations/2026_09_27_jewellery_item_quantity.sql), hallmark_flag (bool),
+gross_weight (decimal 8,3), stone_weight
 (decimal 8,3, default 0), net_weight (decimal 8,3 = gross - stone), purity_karat,
 gold_rate_id (FK gold_rates), applied_rate (decimal 10,2), eligible_percentage
 (decimal 5,2, default 75.00), eligible_amount (decimal 12,2), evaluated_by (FK users),

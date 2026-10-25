@@ -1,6 +1,6 @@
 <?php
 //  echo $_SERVER['CI_ENV'];die();
- //phpinfo();
+ phpinfo();
 //die($_SERVER['REQUEST_URI']);
 //phpinfo();
 

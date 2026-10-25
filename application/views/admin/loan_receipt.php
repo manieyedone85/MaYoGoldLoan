@@ -88,7 +88,7 @@ foreach ($items as $it) {
                 <?php else: foreach ($items as $item): ?>
                     <tr>
                         <td><?php echo htmlspecialchars($item['category_name'] ?? '—'); ?></td>
-                        <td class="text-end">1</td>
+                        <td class="text-end"><?php echo (int) $item['quantity']; ?></td>
                         <td><?php echo htmlspecialchars($item['purity_karat']); ?></td>
                         <td class="text-end"><?php echo number_format($item['gross_weight'], 3); ?>g</td>
                         <td class="text-end"><?php echo number_format($item['stone_weight'], 3); ?>g</td>

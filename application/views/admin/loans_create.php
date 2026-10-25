@@ -192,6 +192,10 @@ $old_items = ! empty($old['items']) && is_array($old['items']) ? array_values($o
                         <?php endif; ?>
                     </select>
                 </div>
+                <div class="col-md-1">
+                    <label class="form-label small">Qty <span class="text-danger">*</span></label>
+                    <input type="number" step="1" min="1" name="items[<?php echo (int) $idx; ?>][quantity]" class="form-control form-control-sm item-quantity" value="<?php echo htmlspecialchars(isset($item['quantity']) && $item['quantity'] !== '' ? $item['quantity'] : '1'); ?>">
+                </div>
                 <div class="col-md-2">
                     <label class="form-label small">Gross Weight (g) <span class="text-danger">*</span></label>
                     <input type="number" step="0.001" name="items[<?php echo (int) $idx; ?>][gross_weight]" class="form-control form-control-sm item-gross-weight" value="<?php echo htmlspecialchars(isset($item['gross_weight']) ? $item['gross_weight'] : ''); ?>">
@@ -269,6 +273,10 @@ $old_items = ! empty($old['items']) && is_array($old['items']) ? array_values($o
                     <option value="<?php echo htmlspecialchars($karat['karat']); ?>"><?php echo htmlspecialchars($karat['karat']); ?></option>
                 <?php endforeach; ?>
             </select>
+        </div>
+        <div class="col-md-1">
+            <label class="form-label small">Qty</label>
+            <input type="number" step="1" min="1" name="items[__INDEX__][quantity]" class="form-control form-control-sm item-quantity" value="1">
         </div>
         <div class="col-md-2">
             <label class="form-label small">Gross Weight (g)</label>

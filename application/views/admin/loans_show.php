@@ -38,14 +38,15 @@
             <div class="card-header bg-white fw-semibold">Jewellery Items</div>
             <div class="table-responsive">
                 <table class="table table-sm mb-0">
-                    <thead class="table-light"><tr><th>Barcode</th><th>Purity</th><th>Net Wt.</th><th>Eligible Amt.</th><th>Status</th></tr></thead>
+                    <thead class="table-light"><tr><th>Barcode</th><th>Purity</th><th>Qty</th><th>Net Wt.</th><th>Eligible Amt.</th><th>Status</th></tr></thead>
                     <tbody>
                         <?php if (empty($jewellery_items)): ?>
-                            <tr><td colspan="5" class="text-center text-muted py-3">No jewellery items.</td></tr>
+                            <tr><td colspan="6" class="text-center text-muted py-3">No jewellery items.</td></tr>
                         <?php else: foreach ($jewellery_items as $item): ?>
                             <tr>
                                 <td><?php echo htmlspecialchars($item['barcode']); ?></td>
                                 <td><?php echo htmlspecialchars($item['purity_karat']); ?>K</td>
+                                <td><?php echo (int) $item['quantity']; ?></td>
                                 <td><?php echo htmlspecialchars($item['net_weight']); ?>g</td>
                                 <td>₹<?php echo number_format($item['eligible_amount'], 2); ?></td>
                                 <td><span class="badge bg-info text-dark"><?php echo htmlspecialchars($item['status']); ?></span></td>
